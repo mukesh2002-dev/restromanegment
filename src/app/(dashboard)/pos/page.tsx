@@ -280,8 +280,16 @@ export default function POSPage() {
       setBill(bJson);
       // sync payments to bill total for UI
       setPayments(activePayments);
-      setMsg(`Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • QR ready — saved to CRM`);
+      const earn = (bJson as unknown as {loyaltyEarned?:number}).loyaltyEarned || 0;
+      const bal = (bJson as unknown as {loyaltyBalanceAfter?:number}).loyaltyBalanceAfter;
+      if(earn) setMsg(`Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • +${earn} pts (bal ${bal}) • QR ready — saved to CRM`);
+      else setMsg(`Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • QR ready — saved to CRM ${bJson.totalAmount <100 ? "(₹100+ to earn)" : ""}`);
       setTimeout(()=> document.getElementById("bill-success")?.scrollIntoView({behavior:"smooth", block:"start"}), 150);
+      // refresh CRM profile to show new points/balance
+      const phoneToRefresh = (effectiveCustomerProfile as unknown as {phone?:string})?.phone || customerProfile?.phone || newCustomerForm.phone || customerPhone;
+      if(phoneToRefresh){
+        fetch(`/api/customers?phone=${encodeURIComponent(phoneToRefresh)}`).then(r=>r.json()).then(j=>{ if(j.found && j.customer) setCustomerProfile(j.customer); }).catch(()=>null);
+      }
       // clear held table selection after success
       if(orderType==="DINE_IN" && tableId) {
         fetch("/api/tables").then(r=>r.json()).then(j=> Array.isArray(j)? setTables(j):null).catch(()=>null);
@@ -570,11 +578,16 @@ export default function POSPage() {
                   {/* QR Loyalty */}
                   <div className="flex gap-3 items-center bg-white rounded-lg p-3 border">
                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(typeof window!=="undefined"? `${window.location.origin}/qr/${bill.qrToken}?billId=${bill.id}` : `/qr/${bill.qrToken}`)}`} alt="Loyalty QR" className="h-24 w-24 border rounded bg-white" />
-                    <div className="text-xs space-y-1">
+                      <div className="text-xs space-y-1">
                       <div className="font-semibold">Loyalty QR — Scan for reward</div>
                       <div className="break-all font-mono text-[11px]">{bill.qrToken}</div>
                       <Link href={`/qr/${bill.qrToken}?billId=${bill.id}`} className="underline text-blue-600">Open QR Reward Flow →</Link>
-                      <div className="text-zinc-500">{bill.totalAmount>=400? `Earn ~${Math.floor(bill.totalAmount/100)*10} points (₹100=10 pts)` : "Spend ₹400+ to earn loyalty"}</div>
+                      <div className="text-zinc-500 font-medium">
+                        {(bill as unknown as {loyaltyEarned?:number}).loyaltyEarned
+                          ? `+${(bill as unknown as {loyaltyEarned?:number}).loyaltyEarned} pts earned (bal ${(bill as unknown as {loyaltyBalanceAfter?:number}).loyaltyBalanceAfter}) ✓`
+                          : bill.totalAmount>=100? `Earn ~${Math.floor(bill.totalAmount/100)*10} pts (₹100=10) — next bill` : "Spend ₹100+ to earn loyalty"}
+                      </div>
+                      <div className="text-[11px] text-zinc-400">Customers/CRM me auto save ✓</div>
                     </div>
                   </div>
                   <div className="flex gap-2">

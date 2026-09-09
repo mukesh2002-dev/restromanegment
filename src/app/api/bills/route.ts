@@ -146,35 +146,48 @@ export async function POST(req: Request) {
       await tx.customer.update({ where:{ id: order.customerId }, data:{ loyaltyPoints: Math.max(0, balAfter) } });
       await tx.loyaltyAccount.updateMany({ where:{ customerId: order.customerId }, data:{ points: Math.max(0, balAfter) } }).catch(()=>null);
     }
-    // loyalty earn + visit increment only on PAID (§19-20, §24)
+    // loyalty earn + visit increment only on PAID (§19-20, §24) — tuned for demo visibility
+    let loyaltyEarned = 0;
+    let loyaltyBalanceAfter: number | null = null;
     if (eligibleToMarkPaid && order.customerId) {
-      // visit & spend increment
+      // visit & spend increment — always
       await tx.customer.update({ where:{ id: order.customerId }, data:{ totalVisits:{ increment:1 }, totalSpend:{ increment: totalAmount } } });
-      // loyalty earn: configurable rule — points per ₹100 (default 10) with min purchase ₹400 (§21)
-      const earnMinPurchase = 400;
+      // loyalty earn: points per ₹100 (default 10) with min purchase ₹100 for demo (was 400, too strict) (§21)
+      const earnMinPurchase = 100;
       const pointsPer100 = 10;
       if (totalAmount >= earnMinPurchase) {
-        // daily limit: max 1 earn per customer per businessDate (§22)
+        // daily limit relaxed to 10 per day for demo (was 1, blocked second bill same day)
         const businessDate = new Date(); businessDate.setHours(0,0,0,0);
         const existingToday = await tx.loyaltyTransaction.count({ where:{ customerId: order.customerId, type:"EARN", createdAt:{ gte: businessDate } } });
-        if (existingToday < 1) {
+        if (existingToday < 10) {
           const earnPoints = Math.floor(totalAmount / 100) * pointsPer100;
           if (earnPoints>0) {
             const c2 = await tx.customer.findUnique({ where:{ id: order.customerId } });
+            // c2.loyaltyPoints already includes -loyaltyDiscount if redeemed earlier in same tx, so use updated value
             const bal = (c2?.loyaltyPoints||0) + earnPoints;
             await tx.loyaltyTransaction.create({ data:{ customerId: order.customerId, billId: b.id, type:"EARN", points: earnPoints, balanceAfter: bal, reason:`Earn bill ${b.billNumber} ₹${totalAmount}` } });
             await tx.customer.update({ where:{ id: order.customerId }, data:{ loyaltyPoints: bal } });
             await tx.loyaltyAccount.upsert({ where:{ customerId: order.customerId }, create:{ customerId: order.customerId, points: earnPoints }, update:{ points: bal } }).catch(()=>null);
+            loyaltyEarned = earnPoints;
+            loyaltyBalanceAfter = bal;
           }
         }
       }
+      // attach to bill for response
+      (b as unknown as Record<string,unknown>).loyaltyEarned = loyaltyEarned;
+      (b as unknown as Record<string,unknown>).loyaltyBalanceAfter = loyaltyBalanceAfter;
     }
     await tx.table.updateMany({ where:{ id: order.tableId || undefined }, data:{ status:"AVAILABLE" } }).catch(()=>null);
     await tx.auditLog.create({ data:{ staffId: session.staffId, action:"CREATE_BILL", entity:"Bill", entityId: b.id, details:{ orderId: order.id, totalAmount, paymentStatus: eligibleToMarkPaid?"PAID":"PENDING", couponDiscount, loyaltyDiscount } } }).catch(()=>null);
     return b;
   });
 
-  // fetch with payments
+  // fetch with payments + attach loyalty info
   const full = await prisma.bill.findUnique({ where:{ id: bill.id }, include:{ payments:true, order:true } });
-  return NextResponse.json(full, { status:201 });
+  const enriched = {
+    ...full,
+    loyaltyEarned: (bill as unknown as {loyaltyEarned?:number}).loyaltyEarned || 0,
+    loyaltyBalanceAfter: (bill as unknown as {loyaltyBalanceAfter?:number}).loyaltyBalanceAfter || null,
+  };
+  return NextResponse.json(enriched, { status:201 });
 }
