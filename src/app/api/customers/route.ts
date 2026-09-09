@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isDbAvailable, prisma } from "@/lib/db";
+import { isDbAvailable, prisma, getEffectiveRestaurantId } from "@/lib/db";
 import { demoCustomers, demoBills, demoReviews, demoLoyaltyTx, demoCoupons } from "@/data/demo";
 import { getSession } from "@/lib/auth";
 
@@ -100,7 +100,9 @@ export async function POST(req: Request){
     return NextResponse.json(created, { status:201 });
   }
   try{
-    const created = await prisma.customer.create({ data:{ restaurantId: session.restaurantId, name: name.trim(), phone, email: email||undefined, birthday: dob? new Date(dob):undefined, marketingConsent: !!marketingConsent, whatsappOptIn: !!whatsappOptIn, smsOptIn: !!smsOptIn, emailOptIn: !!emailOptIn } });
+    const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
+    const created = await prisma.customer.create({ data:{ restaurantId, name: name.trim(), phone, email: email||undefined, birthday: dob? new Date(dob):undefined, marketingConsent: !!marketingConsent, whatsappOptIn: !!whatsappOptIn, smsOptIn: !!smsOptIn, emailOptIn: !!emailOptIn } });
     // also create loyalty account lazily
     await prisma.loyaltyAccount.create({ data:{ customerId: created.id, points:0 } }).catch(()=>null);
     return NextResponse.json(created, { status:201 });

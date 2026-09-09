@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { prisma, isDbAvailable } from "@/lib/db";
+import { prisma, isDbAvailable, getEffectiveRestaurantId } from "@/lib/db";
 import { demoCategories, demoMenuItems } from "@/data/demo";
 import { categorySchema } from "@/lib/validators";
 
@@ -34,8 +34,10 @@ export async function POST(req: Request) {
     return NextResponse.json(created, { status:201 });
   }
   try {
+    const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
     const created = await prisma.category.create({
-      data: { restaurantId: session.restaurantId, name, slug: finalSlug, description, sortOrder: sortOrder||0, isActive: isActive??true, imageUrl: imageUrl||null },
+      data: { restaurantId, name, slug: finalSlug, description, sortOrder: sortOrder||0, isActive: isActive??true, imageUrl: imageUrl||null },
     });
     await prisma.auditLog.create({ data:{ staffId: session.staffId, action:"CREATE_CATEGORY", entity:"Category", entityId: created.id, details:{ name } } }).catch(()=>null);
     return NextResponse.json(created, { status:201 });

@@ -15,6 +15,17 @@ type PaymentLine = { method:"CASH"|"CARD"|"UPI"|"WALLET"|"ONLINE"|"SPLIT"; amoun
 type CustomerProfile = { id:string; name:string; phone:string; email?:string|null; birthday?:string|null; totalVisits:number; totalSpend:number; totalSpending?:number; totalOrders:number; loyaltyPoints:number; availableCoupons?:{code:string; value:number; rewardType:string; expiryDate:string; status:string}[]; coupons?:unknown[]; lastVisitDate?:string; recentBills?:unknown[]; loyaltyAccount?:{points:number} };
 type HoldOrder = { id:string; cart: CartLine[]; orderType:string; tableId:string; notes:string; discount:number; createdAt:string };
 
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve)=>{
+    if (typeof window !== "undefined" && (window as unknown as { Razorpay?: unknown }).Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
 function useMenu() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [cats, setCats] = useState<{id:string; name:string; slug:string}[]>(demoCategories as unknown as {id:string; name:string; slug:string}[]);
@@ -64,6 +75,7 @@ export default function POSPage() {
   const [bill, setBill] = useState<{id:string; billNumber:string; orderId:string; totalAmount:number; subtotal:number; taxAmount:number; discountAmount:number; couponDiscount?:number; paidAt:string|null; qrToken:string; status:string; paymentStatus:string} | null>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [razorPayBusy, setRazorPayBusy] = useState(false);
   const [holdOrders, setHoldOrders] = useState<HoldOrder[]>([]);
 
   useEffect(()=>{
@@ -206,29 +218,97 @@ export default function POSPage() {
   }
   function deleteHold(id:string){ persistHold(holdOrders.filter(x=> x.id!==id)); }
 
-  async function createOrderAndBill(){
+  // normalized payments — fixes Pay Bill not clickable when paidSum stale (§15)
+  function getNormalizedPayments(override?: PaymentLine[]): PaymentLine[] {
+    const list = override || payments;
+    const sum = list.reduce((a,p)=>a+Number(p.amount||0),0);
+    if (list.length===1 && Math.abs(sum - grandTotal) > 0.01) {
+      return [{ ...list[0], amount: grandTotal }];
+    }
+    return list;
+  }
+
+  async function createOrderAndBill(overridePayments?: PaymentLine[]){
     if(cart.length===0){ setMsg("Add at least one item"); return; }
     if(orderType==="DINE_IN" && !tableId){ setMsg("Select table for Dine-in (§9)"); return; }
     if(orderType==="DELIVERY" && !deliveryAddress.trim()){ setMsg("Delivery address required (§9/37)"); return; }
     if(orderType==="DELIVERY" && !customerProfile && customerMode!=="walkin"){ setMsg("Delivery requires customer name + mobile + address — search or create customer first"); return; }
-    if(Math.abs(paidSum - grandTotal) > 0.01 && paidSum < grandTotal){ setMsg(`Payments ₹${paidSum} < total ₹${grandTotal} — add payment or adjust`); return; }
-    // if customerMode is new but not created, block
     if(customerMode==="new"){ setMsg("Create new customer first (click Create) or continue as Walk-in"); return; }
+    const activePayments = getNormalizedPayments(overridePayments);
+    const paid = activePayments.reduce((a,p)=>a+Number(p.amount||0),0);
+    if(Math.abs(paid - grandTotal) > 0.01 && paid < grandTotal){ setMsg(`Payments ₹${paid} < total ₹${grandTotal} — click Pay amount will auto-sync or adjust split`); return; }
     setBusy(true); setMsg("");
     try {
       const customerId = customerMode==="found" && customerProfile ? customerProfile.id : undefined;
       const oRes = await fetch("/api/orders",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ tableId: tableId||undefined, customerId, type: orderType, items: cart.map(c=> ({ menuItemId:c.menuItemId, quantity:c.quantity, notes:c.notes, variantId:c.variantId, addOnIds:c.addOnIds })), discountAmount: discount, notes: notes + (orderType==="DELIVERY"? ` | Address: ${deliveryAddress}`:"") + (customerMode==="walkin"?" | WALKIN":"") })});
       const oJson = await oRes.json();
-      if(!oRes.ok){ setMsg(oJson.error||"Order failed"); setBusy(false); return; }
+      if(!oRes.ok){ setMsg(oJson.error||oJson.message||"Order failed"); setBusy(false); return; }
       const orderId = oJson.id;
       setOrder({ id: orderId, orderNumber: oJson.orderNumber, totalAmount: oJson.totalAmount });
-      const bRes = await fetch("/api/bills",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ orderId, discountAmount: discount, couponCode: couponCode||undefined, loyaltyPointsToRedeem: loyaltyRedeem||undefined, payments: payments.map(p=> ({ method:p.method, amount: p.amount, reference:p.reference })) })});
+      const bRes = await fetch("/api/bills",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ orderId, discountAmount: discount, couponCode: couponCode||undefined, loyaltyPointsToRedeem: loyaltyRedeem||undefined, payments: activePayments.map(p=> ({ method:p.method, amount: Number(p.amount), reference:p.reference })) })});
       const bJson = await bRes.json();
-      if(!bRes.ok){ setMsg(bJson.error||"Bill failed"); setBusy(false); return; }
+      if(!bRes.ok){ setMsg(bJson.error||bJson.message||"Bill failed — check payments sum vs total"); setBusy(false); return; }
       setBill(bJson);
+      // sync payments to bill total for UI
+      setPayments(activePayments);
       setMsg(`Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • QR ready`);
+      // clear held table selection after success
+      if(orderType==="DINE_IN" && tableId) {
+        fetch("/api/tables").then(r=>r.json()).then(j=> Array.isArray(j)? setTables(j):null).catch(()=>null);
+      }
     } catch (e: unknown){ setMsg(e instanceof Error? e.message:"Network error"); }
     setBusy(false);
+  }
+
+  async function handleRazorpayPay(){
+    if(cart.length===0){ setMsg("Add at least one item"); return; }
+    if(orderType==="DINE_IN" && !tableId){ setMsg("Select table for Dine-in"); return; }
+    if(customerMode==="new"){ setMsg("Create customer first or continue as Walk-in"); return; }
+    if(grandTotal <=0){ setMsg("Cart total is 0 — add items"); return; }
+    setRazorPayBusy(true); setMsg("Creating Razorpay order…");
+    try{
+      const r = await fetch("/api/payments/razorpay/order",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ amount: grandTotal, receipt:`pos_${Date.now()}`, notes:{ customerPhone: customerProfile?.phone || customerPhone || "walkin", orderType } })});
+      const j = await r.json();
+      if(!r.ok){ setMsg(j.error||"Razorpay order failed"); setRazorPayBusy(false); return; }
+      // mock flow — no Checkout needed, directly verify
+      if(j.mock){
+        const mockPaymentId = `pay_mock_${Date.now()}`;
+        const mockSignature = "mock_signature";
+        const v = await fetch("/api/payments/razorpay/verify",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ orderId: j.orderId, paymentId: mockPaymentId, signature: mockSignature, amount: grandTotal })});
+        const vj = await v.json();
+        if(!v.ok){ setMsg(vj.error||"Mock verify failed"); setRazorPayBusy(false); return; }
+        setMsg(`Razorpay mock verified ₹${grandTotal} — creating bill…`);
+        await createOrderAndBill([{ method:"ONLINE", amount: grandTotal, reference: mockPaymentId }]);
+        setRazorPayBusy(false);
+        return;
+      }
+      const loaded = await loadRazorpayScript();
+      if(!loaded){ setMsg("Razorpay SDK failed to load — check internet"); setRazorPayBusy(false); return; }
+      const options = {
+        key: j.keyId,
+        amount: j.amount,
+        currency: j.currency || "INR",
+        name: "Spice Garden",
+        description: `POS bill ₹${grandTotal} • ${cart.length} items`,
+        order_id: j.orderId,
+        handler: async (resp: { razorpay_order_id:string; razorpay_payment_id:string; razorpay_signature:string })=>{
+          try{
+            const vr = await fetch("/api/payments/razorpay/verify",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ orderId: resp.razorpay_order_id, paymentId: resp.razorpay_payment_id, signature: resp.razorpay_signature, amount: grandTotal })});
+            const vj = await vr.json();
+            if(!vr.ok){ setMsg(vj.error||"Razorpay verify failed — payment not captured"); setRazorPayBusy(false); return; }
+            setMsg(`Razorpay success ${resp.razorpay_payment_id} — creating bill…`);
+            await createOrderAndBill([{ method:"ONLINE", amount: grandTotal, reference: resp.razorpay_payment_id }]);
+          }catch(e){ setMsg(e instanceof Error? e.message:"Verify error"); }
+          setRazorPayBusy(false);
+        },
+        prefill: { name: customerProfile?.name || newCustomerForm.name || "", contact: customerProfile?.phone || customerPhone || "", email: customerProfile?.email || "" },
+        theme:{ color:"#ea580c" },
+        modal:{ ondismiss:()=> setRazorPayBusy(false) }
+      };
+      const rzp = new (window as unknown as { Razorpay: new(o: unknown)=> { open:()=>void; on:(e:string,fn:(r:unknown)=>void)=>void } }).Razorpay(options);
+      rzp.on("payment.failed",(resp: unknown)=>{ const r = resp as { error?:{description?:string}}; setMsg(`Razorpay failed: ${r.error?.description||"unknown"}`); setRazorPayBusy(false); });
+      rzp.open();
+    }catch(e){ setMsg(e instanceof Error? e.message:"Razorpay error"); setRazorPayBusy(false); }
   }
 
   const categories = [{ id:"ALL", name:"All", slug:"all" }, ...cats];
@@ -439,8 +519,12 @@ export default function POSPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={holdOrder} disabled={cart.length===0}>Hold Order</Button>
-                <Button onClick={createOrderAndBill} disabled={busy || cart.length===0} className="">{busy?"Processing…":"Pay & Bill"}</Button>
+                <Button onClick={()=>createOrderAndBill()} disabled={busy || razorPayBusy || cart.length===0} className="bg-zinc-900">{busy?"Processing…":"Pay & Bill"}</Button>
               </div>
+              <Button onClick={handleRazorpayPay} disabled={razorPayBusy || busy || cart.length===0} className="w-full bg-[#0a66c2] hover:bg-[#0958a8] text-white">
+                {razorPayBusy?"Razorpay…":"Pay with Razorpay (UPI / Card / Wallet)"}
+              </Button>
+              <div className="text-[11px] text-zinc-500 text-center">Razorpay test mode — mock order when keys not set. Keys: RAZORPAY_KEY_ID in .env</div>
               <Button variant="ghost" className="w-full text-xs" onClick={()=>{ setCart([]); setDiscount(0); setCouponDiscount(0); setLoyaltyRedeem(0); setCouponCode(""); }}>Clear Cart</Button>
               {order && bill && <div className="rounded bg-green-50 border border-green-200 p-3 text-sm space-y-1">
                 <div className="font-bold">✓ {bill.billNumber} • {bill.paymentStatus}</div>

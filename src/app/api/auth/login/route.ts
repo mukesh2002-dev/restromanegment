@@ -39,7 +39,21 @@ export async function POST(req: Request) {
     }
     if (mapped && password === "password123") {
       const hash = await bcrypt.hash("password123",10);
-      staff = { id: mapped.id, email, passwordHash: hash, role: mapped.role, name: mapped.name, restaurantId:"rest_1" };
+      // resolve demo restaurantId to real DB restaurant if available — fixes FK after reseed
+      let rid = "rest_1";
+      if (dbOk) {
+        const real = await prisma.restaurant.findFirst({ select:{ id:true }, orderBy:{ createdAt:"asc" } });
+        if (real) rid = real.id;
+        else {
+          const created = await prisma.restaurant.upsert({
+            where:{ slug:"spice-garden" },
+            update:{},
+            create:{ name:"Spice Garden", slug:"spice-garden", address:"MG Road, Pune", phone:"+91 98765 43210" },
+          });
+          rid = created.id;
+        }
+      }
+      staff = { id: mapped.id, email, passwordHash: hash, role: mapped.role, name: mapped.name, restaurantId: rid };
     }
   }
   if (!staff) return NextResponse.json({ error:"Invalid credentials" }, { status:401 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { prisma, isDbAvailable } from "@/lib/db";
+import { prisma, isDbAvailable, getEffectiveRestaurantId } from "@/lib/db";
 import { demoMenuItems } from "@/data/demo";
 import { menuItemSchema } from "@/lib/validators";
 
@@ -37,9 +37,11 @@ export async function POST(req: Request) {
     return NextResponse.json(created, { status:201 });
   }
   try {
+    const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
     const created = await prisma.menuItem.create({
       data:{
-        restaurantId: session.restaurantId,
+        restaurantId,
         categoryId, name, description, price, taxPercent: taxPercent??5, isVeg:isVeg??true, isAvailable:isAvailable??true, imageUrl: imageUrl||null, servingUnit: servingUnit as never || "PLATE", sku: sku||null, prepTimeMin: prepTimeMin||15,
         variants: variants? { create: variants.map(v=>({ name:v.name, priceDelta:v.priceDelta })) } : undefined,
         addOns: addOns? { create: addOns.map(a=>({ name:a.name, price:a.price })) } : undefined,

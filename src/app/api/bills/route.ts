@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { prisma, isDbAvailable } from "@/lib/db";
+import { prisma, isDbAvailable, getEffectiveRestaurantId } from "@/lib/db";
 import { billCreateSchema } from "@/lib/validators";
 import { billStore } from "@/lib/bill-store";
 import { randomBytes } from "crypto";
@@ -57,7 +57,8 @@ export async function POST(req: Request) {
   const order = await prisma.order.findUnique({ where:{ id: orderId }, include:{ bill:true } });
   if (!order) return NextResponse.json({ error:"Order not found" }, { status:404 });
   if (order.bill) return NextResponse.json({ error:"Bill already exists for this order", existing: order.bill }, { status:409 });
-  if (order.restaurantId !== session.restaurantId) return NextResponse.json({ error:"Order belongs to different restaurant" }, { status:403 });
+  const effectiveRid = await getEffectiveRestaurantId(session.restaurantId);
+  if (order.restaurantId !== effectiveRid) return NextResponse.json({ error:"Order belongs to different restaurant" }, { status:403 });
 
   // server recomputes totals — never trust client total (§13)
   const subtotal = order.subtotal;
@@ -112,10 +113,11 @@ export async function POST(req: Request) {
   const billNumber = genBillNumber();
   const qrToken = genQrToken();
 
+  const effectiveRestaurantId = await getEffectiveRestaurantId(session.restaurantId);
   const bill = await prisma.$transaction(async (tx)=>{
     const b = await tx.bill.create({
       data:{
-        restaurantId: session.restaurantId,
+        restaurantId: effectiveRestaurantId!,
         billNumber, // immutable, unique — server generated
         orderId: order.id,
         customerId: order.customerId,

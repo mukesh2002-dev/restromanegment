@@ -20,3 +20,23 @@ export async function isDbAvailable(): Promise<boolean> {
     return false;
   }
 }
+
+export async function getEffectiveRestaurantId(sessionRestaurantId?: string | null): Promise<string | null> {
+  try {
+    if (sessionRestaurantId) {
+      const exists = await prisma.restaurant.findUnique({ where: { id: sessionRestaurantId }, select: { id: true } });
+      if (exists) return sessionRestaurantId;
+    }
+    const first = await prisma.restaurant.findFirst({ select: { id: true }, orderBy: { createdAt: "asc" } });
+    if (first) return first.id;
+    // fallback: ensure demo restaurant exists
+    const demo = await prisma.restaurant.upsert({
+      where: { slug: "spice-garden" },
+      update: {},
+      create: { name: "Spice Garden", slug: "spice-garden", address: "MG Road, Pune", phone: "+91 98765 43210" },
+    });
+    return demo.id;
+  } catch {
+    return sessionRestaurantId || null;
+  }
+}

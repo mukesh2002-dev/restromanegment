@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { prisma, isDbAvailable } from "@/lib/db";
+import { prisma, isDbAvailable, getEffectiveRestaurantId } from "@/lib/db";
 import { orderCreateSchema } from "@/lib/validators";
 import { demoMenuItems } from "@/data/demo";
 import { billStore } from "@/lib/bill-store";
@@ -65,7 +65,8 @@ export async function POST(req: Request) {
   if (type==="DINE_IN" && tableId) {
     const table = await prisma.table.findUnique({ where:{ id: tableId } });
     if (!table) return NextResponse.json({ error:"Table not found" }, { status:404 });
-    if (table.restaurantId !== session.restaurantId) return NextResponse.json({ error:"Table belongs to different restaurant" }, { status:403 });
+    const effectiveRid = await getEffectiveRestaurantId(session.restaurantId);
+  if (table.restaurantId !== effectiveRid) return NextResponse.json({ error:"Table belongs to different restaurant" }, { status:403 });
     // prevent duplicate active orders on same table (§10)
     const activeOrder = await prisma.order.findFirst({ where:{ tableId, status:{ notIn:["COMPLETED","CANCELLED"] } } });
     if (activeOrder) return NextResponse.json({ error:`Table ${table.number} already has active order ${activeOrder.orderNumber} — cannot create duplicate`, code:"TABLE_OCCUPIED" }, { status:409 });
@@ -99,9 +100,11 @@ export async function POST(req: Request) {
   const totalAmount = dbSubtotal + taxAmount - discount;
 
   const orderNumber = genOrderNumber();
+  const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
+  if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
   const order = await prisma.order.create({
     data:{
-      restaurantId: session.restaurantId,
+      restaurantId,
       orderNumber,
       tableId: tableId||null,
       customerId: customerId||null,
