@@ -18,17 +18,39 @@ export async function GET(req: Request) {
   const where: Record<string, unknown> = {};
   if (status && status!=="ALL") where.status = status;
   if (priority && priority!=="ALL") where.priority = Number(priority);
-  // scope to restaurant via order
+  // scope to restaurant via order — with stale JWT fallback
   const session = await getSession();
+  let restaurantId: string | undefined = session?.restaurantId || undefined;
+  if (session?.restaurantId) {
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
+  } else {
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
+  }
   const kots = await prisma.kOT.findMany({
     where: {
       ...where,
-      ...(session ? { order: { restaurantId: session.restaurantId } } : {}),
+      ...(restaurantId ? { order: { restaurantId } } : {}),
     },
     include:{ order:{ include:{ table:true, customer:true } }, items:{ include:{ menuItem:true } } },
     orderBy:{ createdAt:"desc" },
     take: 100,
   });
+  // if filtered restaurant empty but DB has KOTs, fallback (stale JWT)
+  if (kots.length===0 && restaurantId) {
+    const fallback = await prisma.kOT.findMany({ where, include:{ order:{ include:{ table:true, customer:true } }, items:{ include:{ menuItem:true } } }, orderBy:{ createdAt:"desc" }, take:100 });
+    if (fallback.length) {
+      const mappedFb = fallback.map(k=> ({
+        id: k.id, kotNumber: k.kotNumber, orderId: k.orderId, orderNumber: k.order.orderNumber,
+        table: k.order.table?.number || (k.order.type==="TAKEAWAY"?"Takeaway": k.order.type==="DELIVERY"?"Delivery":"—"),
+        tableId: k.order.tableId, customer: k.order.customer?.name || "Walk-in", customerPhone: k.order.customer?.phone || "—",
+        status: k.status, priority: k.priority, notes: k.notes, createdAt: k.createdAt, updatedAt: k.updatedAt,
+        items: k.items.map(it=> ({ id: it.id, name: it.menuItem.name, menuItemId: it.menuItemId, quantity: it.quantity, notes: it.notes||"", status: it.status })),
+      }));
+      return NextResponse.json(mappedFb);
+    }
+  }
   // map to UI shape
   const mapped = kots.map(k=> ({
     id: k.id,

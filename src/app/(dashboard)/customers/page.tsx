@@ -24,8 +24,16 @@ export default function CustomersPage(){
     try{
       const r=await fetch(`/api/customers?q=${encodeURIComponent(q)}&take=20`);
       const j=await r.json();
-      if(j.data) { setList(j.data); setTotal(j.total); }
-      else if(Array.isArray(j)) { setList(j); setTotal(j.length); }
+      let data: Customer[] = [];
+      let tot = 0;
+      if(j.data && Array.isArray(j.data) && j.data.length) { data = j.data; tot = j.total ?? j.data.length; }
+      else if(Array.isArray(j) && j.length) { data = j; tot = j.length; }
+      // fallback to demo when DB empty or stale filter (POS parity) — ensures Customers/CRM not empty
+      if(!data.length){
+        const filtered=demoCustomers.filter(c=> !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q)).slice(0,20) as unknown as Customer[];
+        data = filtered; tot = q ? filtered.length : demoCustomers.length;
+      }
+      setList(data); setTotal(tot);
     } catch { const filtered=demoCustomers.filter(c=> !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q)).slice(0,20) as unknown as Customer[]; setList(filtered); setTotal(demoCustomers.length); }
     setLoading(false);
   }

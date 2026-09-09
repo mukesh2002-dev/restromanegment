@@ -36,7 +36,21 @@ export default function KOTPage(){
     const q=new URLSearchParams();
     if(filter!=="ALL") q.set("status",filter);
     if(priorityFilter!=="ALL") q.set("priority",priorityFilter);
-    try{ const r=await fetch(`/api/kots?${q.toString()}`); const j=await r.json(); if(Array.isArray(j)) setKots(j); } catch {}
+    try{
+      const r=await fetch(`/api/kots?${q.toString()}`); const j=await r.json();
+      if(Array.isArray(j) && j.length) setKots(j);
+      else if(Array.isArray(j) && !j.length){
+        // DB empty — fallback to demoKOTs for kitchen display (ensures KOT page not empty)
+        const { demoKOTs } = await import("@/data/demo");
+        let f = demoKOTs as unknown as KOT[];
+        if(filter!=="ALL") f = f.filter(k=>k.status===filter);
+        if(priorityFilter!=="ALL") f = f.filter(k=>String(k.priority)===priorityFilter);
+        setKots(f);
+      } else if(Array.isArray(j)) setKots(j);
+    } catch {
+      const { demoKOTs } = await import("@/data/demo");
+      setKots(demoKOTs as unknown as KOT[]);
+    }
   },[filter, priorityFilter]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect

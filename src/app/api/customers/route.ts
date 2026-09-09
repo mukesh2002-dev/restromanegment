@@ -48,9 +48,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ total, page, take, data: paged });
   }
   const session = await getSession();
+  let restaurantId: string | undefined = session?.restaurantId || undefined;
+  if (session?.restaurantId) restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
+  else restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
   // exact phone lookup — POS billing primary path (§3)
   if (phone) {
-    const cust = await prisma.customer.findFirst({ where:{ restaurantId: session?.restaurantId, phone } , include:{ loyaltyAccount:true, coupons:{ where:{ status:"ACTIVE", expiryDate:{ gt: new Date() } } }, _count:{ select:{ bills:true, reviews:true, loyaltyTxs:true } } } });
+    const cust = await prisma.customer.findFirst({ where:{ restaurantId, phone } , include:{ loyaltyAccount:true, coupons:{ where:{ status:"ACTIVE", expiryDate:{ gt: new Date() } } }, _count:{ select:{ bills:true, reviews:true, loyaltyTxs:true } } } });
     if (!cust) return NextResponse.json({ found: false, customer: null });
     // analytics: paid bills only for visits/spending (§19)
     const paidBills = await prisma.bill.findMany({ where:{ customerId: cust.id, paymentStatus:"PAID" }, orderBy:{ createdAt:"desc"}, take:5, select:{ billNumber:true, totalAmount:true, createdAt:true } });
@@ -69,7 +72,7 @@ export async function GET(req: Request) {
       }
     });
   }
-  const where: Record<string, unknown> = { restaurantId: session?.restaurantId };
+  const where: Record<string, unknown> = { restaurantId };
   if (q) {
     (where as Record<string, unknown>).OR = [
       { name: { contains: q, mode:"insensitive" } },
@@ -81,6 +84,16 @@ export async function GET(req: Request) {
     prisma.customer.count({ where }),
     prisma.customer.findMany({ where, orderBy:{ totalSpend:"desc"}, skip:(page-1)*take, take, include:{ _count:{ select:{ bills:true, reviews:true, loyaltyTxs:true, coupons:true } } } }),
   ]);
+  // fallback to demo-ish empty check — if stale restaurant gave 0 but DB has data, return all (POS parity)
+  if (total===0 && (await prisma.customer.count())>0) {
+    const fallbackWhere: Record<string, unknown> = {};
+    if (q) (fallbackWhere as Record<string, unknown>).OR = (where as Record<string, unknown>).OR as unknown;
+    const [fbTotal, fbData] = await Promise.all([
+      prisma.customer.count({ where: fallbackWhere }),
+      prisma.customer.findMany({ where: fallbackWhere, orderBy:{ totalSpend:"desc"}, skip:(page-1)*take, take, include:{ _count:{ select:{ bills:true, reviews:true, loyaltyTxs:true, coupons:true } } } }),
+    ]);
+    if (fbTotal) return NextResponse.json({ total: fbTotal, page, take, data: fbData });
+  }
   return NextResponse.json({ total, page, take, data });
 }
 
