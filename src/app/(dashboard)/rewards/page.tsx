@@ -32,8 +32,23 @@ export default function RewardsPage(){
         fetch("/api/loyalty?take=20").then(r=>r.json()).catch(()=>[]),
       ]);
       if(Array.isArray(c)) setCampaigns(c);
-      if(Array.isArray(cp)) setCoupons(cp);
-      if(Array.isArray(lt)) setLoyalty(lt);
+      if(Array.isArray(cp) && cp.length){
+        setCoupons(cp);
+        const active = (cp as Coupon[]).find(x=>x.status==="ACTIVE");
+        if(active) setRedeemCode(active.code);
+      } else if(Array.isArray(cp)) setCoupons(cp);
+      if(Array.isArray(lt) && lt.length){
+        setLoyalty(lt);
+        const first = (lt as LoyaltyTx[])[0];
+        if(first) setLoyaltyForm(prev=> ({...prev, customerId: first.customerId}));
+      } else if(Array.isArray(lt)) setLoyalty(lt);
+      // also fetch a real customer for loyalty form default if still cust_1
+      if(loyaltyForm.customerId==="cust_1"){
+        fetch("/api/customers?take=1").then(r=>r.json()).then(j=>{
+          const cust = j.data?.[0] || j[0];
+          if(cust?.id) setLoyaltyForm(prev=> ({...prev, customerId: cust.id}));
+        }).catch(()=>null);
+      }
     } catch{}
   }
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -80,7 +95,7 @@ export default function RewardsPage(){
             <CardContent className="grid gap-4 md:grid-cols-3 text-sm">
               <div className="border rounded p-3"><div className="font-bold">Campaigns {campaigns.length}</div><div className="text-xs text-zinc-500">{campaigns.map(c=> `${c.minRating}★→${c.rewardValue}${c.rewardType==="PERCENTAGE"?"%":""}`).join(" • ")}</div></div>
               <div className="border rounded p-3"><div className="font-bold">Coupons {coupons.length}</div><div className="text-xs text-zinc-500">{coupons.filter(c=>c.status==="ACTIVE").length} active • {coupons.filter(c=>c.status==="REDEEMED").length} redeemed</div></div>
-              <div className="border rounded p-3"><div className="font-bold">Loyalty Tx 700</div><div className="text-xs text-zinc-500">Earn/Redeem/Adjustment/Expiry with linked bill + reason</div></div>
+              <div className="border rounded p-3"><div className="font-bold">Loyalty Tx {loyalty.length || "—"}</div><div className="text-xs text-zinc-500">Earn/Redeem/Adjustment/Expiry with linked bill + reason</div></div>
             </CardContent>
           </Card>
           <div className="grid gap-4 md:grid-cols-2">

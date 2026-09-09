@@ -601,22 +601,49 @@ export default function POSPage() {
           </Card>
 
           {bill && (
-            <Card id="receipt" className="print:shadow-none">
-              <CardHeader><CardTitle className="text-base">Print-ready Receipt</CardTitle><CardDescription>Bill #{bill.billNumber} • Order #{order?.orderNumber}</CardDescription></CardHeader>
-              <CardContent className="text-sm space-y-2 font-mono">
-                <div className="text-center border-b pb-2">SPICE GARDEN<br/>MG Road, Pune • GST 27ABCDE1234F1Z5</div>
-                <div className="flex justify-between"><span>Bill</span><span>{bill.billNumber}</span></div>
-                <div className="flex justify-between"><span>Customer</span><span>{customerMode==="found"? customerProfile?.name : "Walk-in"} {customerProfile?`• ${customerProfile.phone}`:""}</span></div>
-                <div className="flex justify-between"><span>Status</span><span>{bill.status} / {bill.paymentStatus}</span></div>
-                <div className="flex justify-between"><span>Paid at</span><span>{bill.paidAt? new Date(bill.paidAt).toLocaleString():"—"}</span></div>
-                <div className="border-t my-2" />
-                <div className="flex justify-between"><span>Subtotal</span><span>₹{bill.subtotal}</span></div>
-                <div className="flex justify-between"><span>Tax</span><span>₹{bill.taxAmount}</span></div>
-                <div className="flex justify-between"><span>Discount</span><span>-₹{bill.discountAmount}</span></div>
-                {(bill as unknown as {couponDiscount:number}).couponDiscount ? <div className="flex justify-between"><span>Coupon</span><span>-₹{(bill as unknown as {couponDiscount:number}).couponDiscount}</span></div> : null}
-                <div className="flex justify-between font-bold text-base border-t pt-2"><span>Total</span><span>₹{bill.totalAmount}</span></div>
-                <div className="text-xs text-center pt-2">QR Reward anchor: {bill.qrToken.slice(0,24)}…<br/>Scan to rate & claim — one reward per bill</div>
-                <Button variant="outline" className="w-full mt-2 print:hidden" onClick={()=> window.print()}>Print Receipt</Button>
+            <Card id="receipt" className="print:shadow-none border-2 border-zinc-900">
+              <CardHeader><CardTitle className="text-base flex items-center gap-2">🧾 Print-ready Receipt <span className="text-xs bg-zinc-900 text-white px-2 py-0.5 rounded">Bill #{bill.billNumber}</span></CardTitle><CardDescription>Order #{order?.orderNumber || bill.orderId.slice(0,8)} • {new Date(bill.paidAt || Date.now()).toLocaleString()} • Table {tables.find(t=>t.id===tableId)?.number || "—"}</CardDescription></CardHeader>
+              <CardContent className="text-sm space-y-3 font-mono">
+                <div className="text-center border-b-2 border-dashed pb-3">
+                  <div className="font-bold text-lg">SPICE GARDEN</div>
+                  <div className="text-xs">MG Road, Pune • GST 27ABCDE1234F1Z5 • +91 98765 43210</div>
+                  <div className="text-xs">Thank you for dining!</div>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between"><span>Bill No</span><span className="font-bold">{bill.billNumber}</span></div>
+                  <div className="flex justify-between"><span>Customer</span><span>{customerMode==="found"? customerProfile?.name : "Walk-in"} {customerProfile?`• ${customerProfile.phone}`:""}</span></div>
+                  <div className="flex justify-between"><span>Status</span><span className="font-bold">{bill.status} / {bill.paymentStatus}</span></div>
+                  <div className="flex justify-between"><span>Paid at</span><span>{bill.paidAt? new Date(bill.paidAt).toLocaleString():"—"}</span></div>
+                  <div className="flex justify-between"><span>Payment</span><span>{(bill as unknown as {payments?:{method:string}[]}).payments?.[0]?.method || "CASH/UPI"}</span></div>
+                </div>
+                <div className="border-t-2 border-dashed my-2" />
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between"><span>Subtotal</span><span>₹{bill.subtotal}</span></div>
+                  <div className="flex justify-between"><span>Tax (5%)</span><span>₹{bill.taxAmount}</span></div>
+                  <div className="flex justify-between"><span>Discount</span><span>-₹{bill.discountAmount}</span></div>
+                  {(bill as unknown as {couponDiscount:number}).couponDiscount ? <div className="flex justify-between text-green-600"><span>Coupon</span><span>-₹{(bill as unknown as {couponDiscount:number}).couponDiscount}</span></div> : null}
+                  {(bill as unknown as {loyaltyEarned?:number}).loyaltyEarned ? <div className="flex justify-between text-green-600"><span>Loyalty earned</span><span>+{(bill as unknown as {loyaltyEarned:number}).loyaltyEarned} pts</span></div> : null}
+                  <div className="flex justify-between font-bold text-base border-t-2 pt-2"><span>Total Paid</span><span>₹{bill.totalAmount}</span></div>
+                </div>
+                {/* Review QR — now visible and printable */}
+                <div className="border-2 border-dashed rounded-lg p-3 bg-white flex gap-3 items-center">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${typeof window!=="undefined"? window.location.origin : "https://restroerp.vercel.app"}/qr/${bill.qrToken}?billId=${bill.id}`)}`}
+                    alt="Review QR"
+                    className="h-28 w-28 border rounded bg-white p-1"
+                  />
+                  <div className="text-xs space-y-1">
+                    <div className="font-bold">⭐ Rate & Get Reward</div>
+                    <div>Scan to review — 4★=40% off, 5★=50% off</div>
+                    <div className="font-mono text-[10px] break-all">{bill.qrToken}</div>
+                    <div className="text-zinc-500">One reward per bill • 30 days valid</div>
+                  </div>
+                </div>
+                <div className="flex gap-2 print:hidden">
+                  <Button variant="outline" className="flex-1" onClick={()=> window.print()}>🖨️ Print Receipt</Button>
+                  <Button className="flex-1 bg-zinc-900" onClick={()=> window.open(`/qr/${bill.qrToken}?billId=${bill.id}`, "_blank")}>Open Review QR</Button>
+                </div>
+                <div className="text-[10px] text-center text-zinc-400">Powered by RestroERP • GST inclusive • Visit again!</div>
               </CardContent>
             </Card>
           )}

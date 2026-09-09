@@ -18,6 +18,8 @@ export default function CustomersPage(){
   const [selected,setSelected]=useState<Detail|null>(null);
   const [showCreate,setShowCreate]=useState(false);
   const [form,setForm]=useState({ name:"", phone:"", email:"", birthday:"", marketingConsent:false });
+  const [sortBy,setSortBy]=useState<"name"|"totalVisits"|"totalSpend"|"loyaltyPoints"|"createdAt">("totalSpend");
+  const [sortOrder,setSortOrder]=useState<"asc"|"desc">("desc");
 
   async function load(){
     setLoading(true);
@@ -51,15 +53,47 @@ export default function CustomersPage(){
     else { const j=await r.json(); alert(j.error||"Failed"); }
   }
 
+  // sorted list for display
+  const sortedList = [...list].sort((a,b)=>{
+    const dir = sortOrder==="asc"?1:-1;
+    if(sortBy==="name") return dir * a.name.localeCompare(b.name);
+    if(sortBy==="totalVisits") return dir * (a.totalVisits - b.totalVisits);
+    if(sortBy==="totalSpend") return dir * (a.totalSpend - b.totalSpend);
+    if(sortBy==="loyaltyPoints") return dir * (a.loyaltyPoints - b.loyaltyPoints);
+    if(sortBy==="createdAt") return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return 0;
+  });
+  const currentCustomer = sortedList[0] || list[0];
+  const recentlyUpdated = [...list].sort((a,b)=> new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Customer CRM • 500 customers</h1>
+        <h1 className="text-2xl font-bold">Customer CRM • {total} customers</h1>
         <Button onClick={()=> setShowCreate(v=>!v)}>{showCreate?"Close":"+ New Customer"}</Button>
       </div>
-      <div className="flex gap-2">
+      {/* Current / Recent customer — top bar for current data */}
+      {recentlyUpdated && (
+        <Card className="border-orange-200 bg-orange-50/50">
+          <CardHeader className="pb-2"><CardTitle className="text-sm">🟢 Current / Recent Customer — Live CRM</CardTitle><CardDescription>Most recently updated — after POS bill, refresh to see new entry</CardDescription></CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-4 text-sm">
+            <div><div className="text-xs text-zinc-500">Name</div><div className="font-bold">{recentlyUpdated.name}</div><div className="text-xs">{recentlyUpdated.phone}</div></div>
+            <div><div className="text-xs text-zinc-500">Visits / Spend</div><div className="font-bold">{recentlyUpdated.totalVisits} visits • ₹{Math.round(recentlyUpdated.totalSpend)}</div><div className="text-xs">Points {recentlyUpdated.loyaltyPoints}</div></div>
+            <div><div className="text-xs text-zinc-500">B/T</div><div>{recentlyUpdated._counts? `${recentlyUpdated._counts.bills}B/${recentlyUpdated._counts.reviews}R` : "—"}</div><div className="text-xs">{recentlyUpdated.email||"—"}</div></div>
+            <div className="flex items-end"><Button size="sm" variant="outline" onClick={()=> open(recentlyUpdated.id)}>View Profile</Button></div>
+          </CardContent>
+        </Card>
+      )}
+      <div className="flex flex-wrap gap-2 items-center">
         <Input placeholder="Search name / phone / email" value={q} onChange={e=>setQ(e.target.value)} className="max-w-md" />
         <span className="text-sm text-zinc-500 self-center">{total} total</span>
+        <div className="ml-auto flex gap-2 items-center">
+          <select value={sortBy} onChange={e=>setSortBy(e.target.value as never)} className="border rounded h-8 px-2 text-xs bg-white dark:bg-zinc-900">
+            <option value="totalSpend">Spend</option><option value="totalVisits">Visits</option><option value="loyaltyPoints">Points</option><option value="name">Name</option><option value="createdAt">Recent</option>
+          </select>
+          <Button size="sm" variant="outline" onClick={()=> setSortOrder(o=> o==="asc"?"desc":"asc")} className="h-8">{sortOrder==="asc"?"↑ Asc":"↓ Desc"}</Button>
+          <Button size="sm" variant="outline" onClick={load} className="h-8">Refresh</Button>
+        </div>
       </div>
       {showCreate && <Card><CardHeader><CardTitle className="text-base">New Customer</CardTitle><CardDescription>Mobile is unique per restaurant • birthday for offers • marketing consent</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">
         <div><Label>Name*</Label><Input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
@@ -72,15 +106,22 @@ export default function CustomersPage(){
 
       <div className="rounded border bg-white dark:bg-zinc-900 overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 dark:bg-zinc-800 text-xs"><tr><th className="p-2 text-left">Name</th><th className="p-2 text-left">Mobile</th><th className="p-2">Visits</th><th className="p-2">Spend</th><th className="p-2">Points</th><th className="p-2">B/T</th><th className="p-2"></th></tr></thead>
+          <thead className="bg-zinc-50 dark:bg-zinc-800 text-xs"><tr>
+            <th className="p-2 text-left cursor-pointer" onClick={()=>{setSortBy("name"); setSortOrder(o=>o==="asc"?"desc":"asc")}}>Name {sortBy==="name"? sortOrder==="asc"?"↑":"↓":""}</th>
+            <th className="p-2 text-left">Mobile</th>
+            <th className="p-2 cursor-pointer" onClick={()=>{setSortBy("totalVisits"); setSortOrder(o=>o==="asc"?"desc":"asc")}}>Visits {sortBy==="totalVisits"? sortOrder==="asc"?"↑":"↓":""}</th>
+            <th className="p-2 cursor-pointer" onClick={()=>{setSortBy("totalSpend"); setSortOrder(o=>o==="asc"?"desc":"asc")}}>Spend {sortBy==="totalSpend"? sortOrder==="asc"?"↑":"↓":""}</th>
+            <th className="p-2 cursor-pointer" onClick={()=>{setSortBy("loyaltyPoints"); setSortOrder(o=>o==="asc"?"desc":"asc")}}>Points {sortBy==="loyaltyPoints"? sortOrder==="asc"?"↑":"↓":""}</th>
+            <th className="p-2">B/T</th><th className="p-2"></th></tr></thead>
           <tbody>
             {loading? <tr><td colSpan={7} className="p-6 text-center text-zinc-500">Loading…</td></tr> :
-              list.map(c=>(
-                <tr key={c.id} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800"><td className="p-2 font-medium">{c.name}<div className="text-xs text-zinc-500">{c.email || "—"} {c.birthday?`• ${new Date(c.birthday).toLocaleDateString()}`:""}</div></td><td className="p-2">{c.phone}<div className="text-xs">{c.marketingConsent? <Badge className="bg-green-100 text-green-800 text-[10px]">consent</Badge> : <span className="text-zinc-400">no consent</span>}</div></td><td className="p-2 text-center">{c.totalVisits}</td><td className="p-2 text-center">₹{Math.round(c.totalSpend)}</td><td className="p-2 text-center">{c.loyaltyPoints}</td><td className="p-2 text-center text-xs">{c._counts? `${c._counts.bills}B/${c._counts.reviews}R`:"—"}</td><td className="p-2"><Button size="sm" variant="outline" onClick={()=> open(c.id)}>Profile</Button></td></tr>
+              sortedList.map(c=>(
+                <tr key={c.id} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800"><td className="p-2 font-medium">{c.name}<div className="text-xs text-zinc-500">{c.email || "—"} {c.birthday?`• ${new Date(c.birthday).toLocaleDateString()}`:""}</div></td><td className="p-2">{c.phone}<div className="text-xs">{c.marketingConsent? <Badge className="bg-green-100 text-green-800 text-[10px]">consent</Badge> : <span className="text-zinc-400">no consent</span>}</div></td><td className="p-2 text-center">{c.totalVisits}</td><td className="p-2 text-center">₹{Math.round(c.totalSpend)}</td><td className="p-2 text-center font-bold text-orange-700">{c.loyaltyPoints}</td><td className="p-2 text-center text-xs">{c._counts? `${c._counts.bills}B/${c._counts.reviews}R`:"—"}</td><td className="p-2"><Button size="sm" variant="outline" onClick={()=> open(c.id)}>Profile</Button></td></tr>
               ))}
           </tbody>
         </table>
       </div>
+      <div className="text-xs text-zinc-500">Visits = paid bills count • Spend = sum paid • Points synced from loyaltyAccount • B/T = Bills/Reviews counts — now recomputed and sorted {sortOrder} by {sortBy}</div>
 
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={()=> setSelected(null)}>
