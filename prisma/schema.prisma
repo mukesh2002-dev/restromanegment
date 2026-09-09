@@ -1,0 +1,905 @@
+// RestroERP - Prisma Schema - PostgreSQL ready
+// All modules: Auth, Menu, Tables, POS/Billing, KOT, CRM, Reviews, Loyalty, Coupons, Inventory, Delivery, WhatsApp, Reports, Audit
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ────────────────────────────────────────────────────────────────
+enum Role {
+  OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN_STAFF
+  KITCHEN_MANAGER
+  CHEF
+  DELIVERY_MANAGER
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  BILLING
+  CLEANING
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+  ONLINE
+}
+
+enum OrderStatus {
+  DRAFT
+  PLACED
+  CONFIRMED
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIAL
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  UPI
+  WALLET
+  ONLINE
+  SPLIT
+}
+
+enum KOTStatus {
+  NEW
+  ACCEPTED
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum BillStatus {
+  DRAFT
+  UNPAID
+  PAID
+  VOID
+  REFUNDED
+}
+
+enum CouponStatus {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  VOID
+}
+
+enum RewardType {
+  PERCENTAGE
+  FIXED
+  FREE_ITEM
+  LOYALTY_POINTS
+}
+
+enum LoyaltyTxType {
+  EARN
+  REDEEM
+  ADJUSTMENT
+  EXPIRY
+}
+
+enum StockTxType {
+  PURCHASE
+  CONSUMPTION
+  ADJUSTMENT
+  WASTE
+  RETURN
+  TRANSFER
+}
+
+enum InventoryUnit {
+  KG
+  G
+  LTR
+  ML
+  PCS
+  BOX
+  PACK
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  INVOICED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PLACED
+  PENDING
+  CONFIRMED
+  ACCEPTED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+enum WhatsAppStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum WhatsAppEvent {
+  WELCOME
+  BILL_RECEIPT
+  COUPON_ISSUED
+  COUPON_REMINDER
+  BIRTHDAY_OFFER
+  NEW_OFFER
+  ORDER_CONFIRMATION
+  DELIVERY_UPDATE
+  FEEDBACK_REQUEST
+}
+
+enum CampaignSchedule {
+  IMMEDIATE
+  SCHEDULED
+  RECURRING_DAILY
+  RECURRING_WEEKLY
+}
+
+// ── Core ─────────────────────────────────────────────────────────────────
+model Restaurant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  gstin     String?
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff      Staff[]
+  tables     Table[]
+  categories Category[]
+  menuItems  MenuItem[]
+  orders     Order[]
+  bills      Bill[]
+  customers  Customer[]
+  inventory  InventoryItem[]
+  suppliers  Supplier[]
+  campaigns  Campaign[]
+  settings   RestaurantSettings?
+
+  @@map("restaurants")
+}
+
+model RestaurantSettings {
+  id              String     @id @default(cuid())
+  restaurantId    String     @unique
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  currency        String     @default("INR")
+  taxPercent      Float      @default(5.0)
+  serviceCharge   Float      @default(0)
+  lowStockNotify  Boolean    @default(true)
+  whatsappEnabled Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Staff {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String     @unique
+  phone        String?
+  passwordHash String
+  role         Role
+  isActive     Boolean    @default(true)
+  avatarUrl    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  auditLogs AuditLog[]
+
+  @@index([restaurantId])
+  @@index([role])
+  @@map("staff")
+}
+
+// ── Tables & QR ──────────────────────────────────────────────────────────
+model Table {
+  id           String      @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  number       String
+  capacity     Int         @default(4)
+  floor        String      @default("Ground")
+  area         String? // e.g. "Indoor", "Outdoor", "Patio"
+  status       TableStatus @default(AVAILABLE)
+  qrToken      String?     @unique
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  orders Order[]
+
+  @@unique([restaurantId, number])
+  @@index([status])
+  @@map("tables")
+}
+
+// ── Menu ─────────────────────────────────────────────────────────────────
+model Category {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  slug         String
+  description  String?
+  sortOrder    Int        @default(0)
+  isActive     Boolean    @default(true)
+  imageUrl     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  items MenuItem[]
+
+  @@unique([restaurantId, slug])
+  @@map("categories")
+}
+
+model MenuItem {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     Category   @relation(fields: [categoryId], references: [id])
+  name         String
+  description  String?
+  price        Float
+  taxPercent   Float      @default(5)
+  isVeg        Boolean    @default(true)
+  isAvailable  Boolean    @default(true)
+  imageUrl     String?
+  sku          String?    @unique
+  prepTimeMin  Int?       @default(15)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  variants    MenuVariant[]
+  addOns      MenuAddOn[]
+  orderItems  OrderItem[]
+  kotItems    KOTItem[]
+  recipeItems RecipeItem[]
+
+  @@index([restaurantId])
+  @@index([categoryId])
+  @@map("menu_items")
+}
+
+model MenuVariant {
+  id         String   @id @default(cuid())
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  name       String // e.g. Small/Medium/Large
+  priceDelta Float    @default(0)
+
+  @@map("menu_variants")
+}
+
+model MenuAddOn {
+  id         String   @id @default(cuid())
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  name       String
+  price      Float    @default(0)
+
+  @@map("menu_addons")
+}
+
+// ── Customers & CRM ──────────────────────────────────────────────────────
+model Customer {
+  id               String     @id @default(cuid())
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name             String
+  phone            String
+  email            String?
+  birthday         DateTime? // month/day used for offers
+  anniversary      DateTime?
+  marketingConsent Boolean    @default(false)
+  whatsappOptIn    Boolean    @default(false)
+  smsOptIn         Boolean    @default(false)
+  emailOptIn       Boolean    @default(false)
+  consentTimestamp DateTime?
+  consentSource    String? // e.g. "qr_scan", "pos", "online_order"
+  totalVisits      Int        @default(0)
+  totalSpend       Float      @default(0)
+  loyaltyPoints    Int        @default(0)
+  notes            String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  orders            Order[]
+  bills             Bill[]
+  reviews           Review[]
+  coupons           Coupon[]
+  loyaltyAccount    LoyaltyAccount?
+  loyaltyTxs        LoyaltyTransaction[]
+  rewards           Reward[]
+  deliveryOrders    DeliveryOrder[]
+  addresses         Address[]
+  couponRedemptions CouponRedemption[]
+
+  @@unique([restaurantId, phone])
+  @@index([phone])
+  @@index([email])
+  @@map("customers")
+}
+
+// ── Orders, Bills, Payments ──────────────────────────────────────────────
+model Order {
+  id             String      @id @default(cuid())
+  restaurantId   String
+  restaurant     Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderNumber    String      @unique // e.g. ORD-2026-0001
+  tableId        String?
+  table          Table?      @relation(fields: [tableId], references: [id])
+  customerId     String?
+  customer       Customer?   @relation(fields: [customerId], references: [id])
+  type           OrderType   @default(DINE_IN)
+  status         OrderStatus @default(DRAFT)
+  subtotal       Float       @default(0)
+  taxAmount      Float       @default(0)
+  discountAmount Float       @default(0)
+  totalAmount    Float       @default(0)
+  notes          String?
+  createdById    String? // staff id
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items    OrderItem[]
+  bill     Bill?
+  kots     KOT[]
+  payments Payment[]
+
+  @@index([restaurantId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int      @default(1)
+  unitPrice  Float
+  totalPrice Float
+  notes      String?
+  variantId  String?
+  addOnIds   String[] @default([])
+  createdAt  DateTime @default(now())
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Bill {
+  id             String        @id @default(cuid())
+  restaurantId   String
+  restaurant     Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  billNumber     String        @unique // immutable unique
+  orderId        String        @unique
+  order          Order         @relation(fields: [orderId], references: [id])
+  customerId     String?
+  customer       Customer?     @relation(fields: [customerId], references: [id])
+  status         BillStatus    @default(UNPAID)
+  paymentStatus  PaymentStatus @default(PENDING)
+  subtotal       Float
+  taxAmount      Float
+  discountAmount Float         @default(0)
+  totalAmount    Float
+  paidAt         DateTime?
+  qrToken        String?       @unique // secure token for QR reward flow
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  payments          Payment[]
+  reward            Reward? // one reward per bill enforced via unique
+  review            Review?
+  coupons           Coupon[]
+  couponRedemptions CouponRedemption[]
+
+  @@index([restaurantId])
+  @@index([paymentStatus])
+  @@index([status])
+  @@map("bills")
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  orderId   String?
+  order     Order?        @relation(fields: [orderId], references: [id])
+  billId    String?
+  bill      Bill?         @relation(fields: [billId], references: [id])
+  method    PaymentMethod
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+  reference String?
+  createdAt DateTime      @default(now())
+
+  @@index([billId])
+  @@index([orderId])
+  @@map("payments")
+}
+
+// ── KOT ──────────────────────────────────────────────────────────────────
+model KOT {
+  id        String    @id @default(cuid())
+  kotNumber String    @unique // e.g. KOT-2026-0001
+  orderId   String
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    KOTStatus @default(NEW)
+  priority  Int       @default(0) // 0 normal, 1 high, 2 urgent
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  items KOTItem[]
+
+  @@index([orderId])
+  @@index([status])
+  @@map("kots")
+}
+
+model KOTItem {
+  id         String    @id @default(cuid())
+  kotId      String
+  kot        KOT       @relation(fields: [kotId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
+  quantity   Int       @default(1)
+  notes      String?
+  status     KOTStatus @default(NEW)
+
+  @@map("kot_items")
+}
+
+// ── Reviews & QR ─────────────────────────────────────────────────────────
+model Review {
+  id         String    @id @default(cuid())
+  billId     String    @unique
+  bill       Bill      @relation(fields: [billId], references: [id])
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  rating     Int // 1-5
+  comment    String?
+  name       String?
+  phone      String?
+  email      String?
+  birthday   DateTime?
+  consent    Boolean   @default(false)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  reward Reward?
+
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+// ── Campaign / Reward / Loyalty / Coupon ─────────────────────────────────
+model Campaign {
+  id                   String     @id @default(cuid())
+  restaurantId         String
+  restaurant           Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name                 String
+  slug                 String     @unique
+  description          String?
+  isActive             Boolean    @default(true)
+  minRating            Int        @default(4) // threshold to earn reward
+  rewardType           RewardType @default(PERCENTAGE)
+  rewardValue          Float // e.g. 40 or 50
+  rewardMaxDiscount    Float? // cap for percentage
+  minSpend             Float      @default(0)
+  validFrom            DateTime   @default(now())
+  validTo              DateTime?
+  maxClaimsPerCustomer Int? // e.g. once per month, null = unlimited per bill rule
+  couponPrefix         String     @default("REWARD")
+  couponExpiryDays     Int        @default(30)
+  loyaltyPoints        Int? // if rewardType == LOYALTY_POINTS
+  freeItemId           String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  rewards Reward[]
+  coupons Coupon[]
+
+  @@index([restaurantId])
+  @@map("campaigns")
+}
+
+// CRITICAL: One reward per bill enforced via unique(billId)
+model Reward {
+  id                 String              @id @default(cuid())
+  billId             String              @unique
+  bill               Bill                @relation(fields: [billId], references: [id])
+  customerId         String
+  customer           Customer            @relation(fields: [customerId], references: [id])
+  reviewId           String?             @unique
+  review             Review?             @relation(fields: [reviewId], references: [id])
+  campaignId         String
+  campaign           Campaign            @relation(fields: [campaignId], references: [id])
+  couponId           String?             @unique
+  coupon             Coupon?             @relation(fields: [couponId], references: [id])
+  loyaltyTxId        String?             @unique
+  pointsAwarded      Int? // if loyalty reward
+  claimedAt          DateTime            @default(now())
+  ipAddress          String?
+  userAgent          String?
+  loyaltyTransaction LoyaltyTransaction?
+
+  @@index([customerId])
+  @@index([campaignId])
+  @@map("rewards")
+}
+
+model Coupon {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  campaignId  String?
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id])
+  customerId  String?
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  billId      String?
+  bill        Bill?        @relation(fields: [billId], references: [id])
+  rewardType  RewardType
+  value       Float // percent or fixed amount or points
+  minSpend    Float        @default(0)
+  maxDiscount Float?
+  status      CouponStatus @default(ACTIVE)
+  startDate   DateTime     @default(now())
+  expiryDate  DateTime
+  redeemedAt  DateTime?
+  usageLimit  Int          @default(1)
+  usedCount   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  reward      Reward?
+  redemptions CouponRedemption[]
+
+  @@index([code])
+  @@index([customerId])
+  @@index([status])
+  @@map("coupons")
+}
+
+model LoyaltyTransaction {
+  id           String        @id @default(cuid())
+  customerId   String
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  billId       String?
+  type         LoyaltyTxType
+  points       Int // positive for earn, negative for redeem
+  balanceAfter Int
+  reason       String?
+  expiryDate   DateTime?
+  createdAt    DateTime      @default(now())
+
+  reward   Reward? @relation(fields: [rewardId], references: [id])
+  rewardId String? @unique
+
+  @@index([customerId])
+  @@index([billId])
+  @@map("loyalty_transactions")
+}
+
+// ── Inventory ────────────────────────────────────────────────────────────
+model InventoryItem {
+  id           String        @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sku          String        @unique
+  name         String
+  category     String // e.g. Ingredients, Beverages, Packaging
+  unit         InventoryUnit @default(PCS)
+  currentStock Float         @default(0)
+  reorderLevel Float         @default(10)
+  costPerUnit  Float         @default(0)
+  supplierId   String?
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id])
+  batchNumber  String?
+  expiryDate   DateTime?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  transactions StockTransaction[]
+  recipeItems  RecipeItem[]
+
+  @@index([restaurantId])
+  @@index([category])
+  @@map("inventory_items")
+}
+
+model StockTransaction {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  type            StockTxType
+  quantity        Float // positive in, negative out
+  unitCost        Float?
+  reference       String? // PO number, bill, note
+  createdById     String?
+  createdAt       DateTime      @default(now())
+
+  @@index([inventoryItemId])
+  @@index([type])
+  @@map("stock_transactions")
+}
+
+model RecipeItem {
+  id              String        @id @default(cuid())
+  menuItemId      String
+  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity        Float // qty of inventory per menu item
+
+  @@unique([menuItemId, inventoryItemId])
+  @@map("recipe_items")
+}
+
+model Supplier {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  contactName  String?
+  phone        String?
+  email        String?
+  address      String?
+  gstin        String?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  inventoryItems InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  restaurantId String
+  supplierId   String
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+  poNumber     String              @unique
+  status       PurchaseOrderStatus @default(DRAFT)
+  totalAmount  Float               @default(0)
+  notes        String?
+  orderedAt    DateTime?
+  receivedAt   DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  items PurchaseOrderItem[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId String
+  quantity        Float
+  unitCost        Float
+  totalCost       Float
+
+  @@map("purchase_order_items")
+}
+
+// ── Delivery ─────────────────────────────────────────────────────────────
+model DeliveryOrder {
+  id                    String         @id @default(cuid())
+  restaurantId          String?
+  orderNumber           String         @unique
+  customerId            String?
+  customer              Customer?      @relation(fields: [customerId], references: [id])
+  customerName          String
+  customerPhone         String
+  customerEmail         String?
+  address               String
+  area                  String?
+  instructions          String? // delivery instructions
+  items                 Json // snapshot of items [{name, qty, price, menuItemId}]
+  subtotal              Float
+  taxAmount             Float          @default(0)
+  discountAmount        Float          @default(0)
+  couponCode            String?
+  deliveryFee           Float          @default(40)
+  totalAmount           Float
+  status                DeliveryStatus @default(PLACED)
+  paymentMethod         String? // CASH, CARD, UPI, ONLINE (mock)
+  paymentStatus         PaymentStatus  @default(PENDING)
+  assignedTo            String? // staff id (delivery staff)
+  estimatedDeliveryTime DateTime?
+  otp                   String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([status])
+  @@index([restaurantId])
+  @@map("delivery_orders")
+}
+
+// ── WhatsApp ─────────────────────────────────────────────────────────────
+model WhatsAppTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  content   String // template with {{variables}}
+  variables String[] @default([])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs      WhatsAppLog[]
+  campaigns WhatsAppCampaign[]
+
+  @@map("whatsapp_templates")
+}
+
+model WhatsAppCampaign {
+  id          String           @id @default(cuid())
+  name        String
+  event       WhatsAppEvent
+  templateId  String
+  template    WhatsAppTemplate @relation(fields: [templateId], references: [id])
+  audience    Json? // { minVisits, minSpend, hasBirthday, consentRequired }
+  schedule    CampaignSchedule @default(IMMEDIATE)
+  scheduledAt DateTime?
+  couponRequired Boolean       @default(false)
+  couponValue  Float?
+  couponPrefix String?         @default("BDAY")
+  isActive    Boolean          @default(true)
+  lastRunAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  logs        WhatsAppLog[]
+
+  @@index([event])
+  @@index([isActive])
+  @@map("whatsapp_campaigns")
+}
+
+model WhatsAppLog {
+  id         String            @id @default(cuid())
+  templateId String?
+  template   WhatsAppTemplate? @relation(fields: [templateId], references: [id])
+  campaignId String?
+  campaign   WhatsAppCampaign? @relation(fields: [campaignId], references: [id])
+  toPhone    String
+  message    String
+  status     WhatsAppStatus    @default(QUEUED)
+  event      WhatsAppEvent?
+  providerId String?
+  error      String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([toPhone])
+  @@index([status])
+  @@index([event])
+  @@map("whatsapp_logs")
+}
+
+// ── Permissions & Security ───────────────────────────────────────────────
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g. "menu:write", "billing:refund"
+  description String?
+  roles       Role[] // which roles have this permission
+  createdAt   DateTime @default(now())
+
+  @@map("permissions")
+}
+
+// ── Loyalty Account (unique per customer) ─────────────────────────────────
+model LoyaltyAccount {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  points     Int      @default(0)
+  tier       String   @default("BRONZE") // BRONZE/SILVER/GOLD
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("loyalty_accounts")
+}
+
+// ── Coupon Redemption (explicit audit) ─────────────────────────────────────
+model CouponRedemption {
+  id         String   @id @default(cuid())
+  couponId   String
+  coupon     Coupon   @relation(fields: [couponId], references: [id])
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  billId     String?
+  bill       Bill?    @relation(fields: [billId], references: [id])
+  discount   Float
+  redeemedAt DateTime @default(now())
+
+  @@index([couponId])
+  @@index([customerId])
+  @@map("coupon_redemptions")
+}
+
+// ── Address (customer/delivery) ────────────────────────────────────────────
+model Address {
+  id         String   @id @default(cuid())
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  label      String? // HOME, WORK
+  line1      String
+  line2      String?
+  city       String?
+  state      String?
+  pincode    String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId])
+  @@map("addresses")
+}
+
+// ── Audit ────────────────────────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  staffId   String?
+  staff     Staff?   @relation(fields: [staffId], references: [id])
+  action    String // e.g. CREATE_BILL, REDEEM_COUPON
+  entity    String // e.g. Bill, Coupon
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([staffId])
+  @@index([action])
+  @@map("audit_logs")
+}
