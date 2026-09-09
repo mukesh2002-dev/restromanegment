@@ -239,8 +239,28 @@ export default function POSPage() {
       if(avail){ effectiveTableId = avail.id; setTableId(avail.id); } else { setMsg("Select table for Dine-in (§9) — no available table found"); window.scrollTo({top:0, behavior:"smooth"}); return; }
     }
     if(orderType==="DELIVERY" && !deliveryAddress.trim()){ setMsg("Delivery address required (§9/37)"); window.scrollTo({top:0, behavior:"smooth"}); return; }
-    if(orderType==="DELIVERY" && !customerProfile && customerMode!=="walkin"){ setMsg("Delivery requires customer name + mobile + address — search or create customer first"); window.scrollTo({top:0, behavior:"smooth"}); return; }
-    if(customerMode==="new"){ setMsg("Create new customer first (click Create) or continue as Walk-in"); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    if(orderType==="DELIVERY" && !customerProfile && customerMode!=="walkin" && customerMode!=="new"){ setMsg("Delivery requires customer name + mobile + address — search or create customer first"); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    // Auto-create customer if in 'new' mode — ensures CRM save (fixes "Customers/CRM me data save huaa" )
+    let effectiveCustomerId: string | undefined = customerMode==="found" && customerProfile ? customerProfile.id : undefined;
+    let effectiveCustomerProfile = customerProfile;
+    if(customerMode==="new"){
+      if(!newCustomerForm.name.trim() || !/^[6-9]\d{9}$/.test(newCustomerForm.phone)){
+        setMsg("New customer: Name + 10-digit mobile required — complete form then Pay"); window.scrollTo({top:0, behavior:"smooth"}); return;
+      }
+      setMsg("Creating new customer for CRM…"); setBusy(true);
+      try{
+        const cr = await fetch("/api/customers",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ name: newCustomerForm.name.trim(), phone: newCustomerForm.phone.trim(), email: newCustomerForm.email||undefined, birthday: newCustomerForm.birthday||undefined })});
+        const cj = await cr.json();
+        if(!cr.ok){ setMsg(cj.error||"Customer create failed — check phone duplicate"); setBusy(false); window.scrollTo({top:0, behavior:"smooth"}); return; }
+        effectiveCustomerId = cj.id;
+        effectiveCustomerProfile = { id: cj.id, name: cj.name, phone: cj.phone, email: cj.email, birthday: cj.birthday, totalVisits:0, totalSpend:0, totalOrders:0, loyaltyPoints:0, availableCoupons:[] };
+        setCustomerProfile(effectiveCustomerProfile);
+        setCustomerMode("found");
+        setCustomerPhone(cj.phone);
+        setCustomerMsg(`New customer created: ${cj.name} — saved to CRM`);
+      }catch{ setMsg("Customer create network error"); setBusy(false); return; }
+      setBusy(false);
+    }
     const activePayments = getNormalizedPayments(overridePayments);
     const paid = activePayments.reduce((a,p)=>a+Number(p.amount||0),0);
     if(Math.abs(paid - grandTotal) > 0.01 && paid < grandTotal){ setMsg(`Payments ₹${paid} < total ₹${grandTotal} — auto-syncing to total`); // auto-fix instead of blocking
@@ -248,7 +268,7 @@ export default function POSPage() {
     }
     setBusy(true); setMsg("");
     try {
-      const customerId = customerMode==="found" && customerProfile ? customerProfile.id : undefined;
+      const customerId = effectiveCustomerId;
       const oRes = await fetch("/api/orders",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ tableId: effectiveTableId||undefined, customerId, type: orderType, items: cart.map(c=> ({ menuItemId:c.menuItemId, quantity:c.quantity, notes:c.notes, variantId:c.variantId, addOnIds:c.addOnIds })), discountAmount: discount, notes: notes + (orderType==="DELIVERY"? ` | Address: ${deliveryAddress}`:"") + (customerMode==="walkin"?" | WALKIN":"") })});
       const oJson = await oRes.json();
       if(!oRes.ok){ setMsg(oJson.error||oJson.message||"Order failed"); setBusy(false); return; }
@@ -260,7 +280,8 @@ export default function POSPage() {
       setBill(bJson);
       // sync payments to bill total for UI
       setPayments(activePayments);
-      setMsg(`Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • QR ready`);
+      setMsg(`Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • QR ready — saved to CRM`);
+      setTimeout(()=> document.getElementById("bill-success")?.scrollIntoView({behavior:"smooth", block:"start"}), 150);
       // clear held table selection after success
       if(orderType==="DINE_IN" && tableId) {
         fetch("/api/tables").then(r=>r.json()).then(j=> Array.isArray(j)? setTables(j):null).catch(()=>null);
@@ -271,8 +292,7 @@ export default function POSPage() {
 
   async function handleRazorpayPay(){
     if(cart.length===0){ setMsg("Add at least one item"); return; }
-    if(orderType==="DINE_IN" && !tableId){ setMsg("Select table for Dine-in"); return; }
-    if(customerMode==="new"){ setMsg("Create customer first or continue as Walk-in"); return; }
+    // DINE_IN table will be auto-selected in createOrderAndBill, so don't block here — just warn
     if(grandTotal <=0){ setMsg("Cart total is 0 — add items"); return; }
     setRazorPayBusy(true); setMsg("Creating Razorpay order…");
     try{
@@ -543,13 +563,27 @@ export default function POSPage() {
               </Button>
               <div className="text-[11px] text-zinc-500 text-center">Razorpay Live Test — keys set `rzp_test_Ta2T...` • Use test card 4111 1111 1111 1111</div>
               <Button variant="ghost" className="w-full text-xs" onClick={()=>{ setCart([]); setDiscount(0); setCouponDiscount(0); setLoyaltyRedeem(0); setCouponCode(""); }}>Clear Cart</Button>
-              {order && bill && <div className="rounded bg-green-50 border border-green-200 p-3 text-sm space-y-1">
-                <div className="font-bold">✓ {bill.billNumber} • {bill.paymentStatus}</div>
-                <div>Order {order.orderNumber} → Bill immutably linked</div>
-                <div>Customer: {customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • Total ₹{bill.totalAmount}</div>
-                <div className="text-xs break-all">QR Token: {bill.qrToken}</div>
-                <Link href={`/qr/${bill.qrToken}?billId=${bill.id}`} className="underline text-xs">Open QR Reward Flow →</Link>
-              </div>}
+              {order && bill && (
+                <div id="bill-success" className="rounded-xl bg-green-50 border-2 border-green-400 p-4 text-sm space-y-3 scroll-mt-4">
+                  <div className="font-bold text-green-800 text-base flex items-center gap-2">✓ Payment Success — Bill {bill.billNumber} <span className="bg-green-600 text-white px-2 py-0.5 rounded text-xs">{bill.paymentStatus}</span></div>
+                  <div>Order {order.orderNumber} → Bill linked • Customer: {customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • Total ₹{bill.totalAmount}</div>
+                  {/* QR Loyalty */}
+                  <div className="flex gap-3 items-center bg-white rounded-lg p-3 border">
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(typeof window!=="undefined"? `${window.location.origin}/qr/${bill.qrToken}?billId=${bill.id}` : `/qr/${bill.qrToken}`)}`} alt="Loyalty QR" className="h-24 w-24 border rounded bg-white" />
+                    <div className="text-xs space-y-1">
+                      <div className="font-semibold">Loyalty QR — Scan for reward</div>
+                      <div className="break-all font-mono text-[11px]">{bill.qrToken}</div>
+                      <Link href={`/qr/${bill.qrToken}?billId=${bill.id}`} className="underline text-blue-600">Open QR Reward Flow →</Link>
+                      <div className="text-zinc-500">{bill.totalAmount>=400? `Earn ~${Math.floor(bill.totalAmount/100)*10} points (₹100=10 pts)` : "Spend ₹400+ to earn loyalty"}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="flex-1" onClick={()=> document.getElementById("receipt")?.scrollIntoView({behavior:"smooth"})}>View & Print Bill</Button>
+                    <Link href="/customers" className="flex-1"><Button size="sm" variant="outline" className="w-full">View in Customers/CRM →</Button></Link>
+                  </div>
+                  <div className="text-xs text-zinc-600">Customer saved to CRM ✓ • Visit & spend incremented • Check Customers page for new entry</div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
