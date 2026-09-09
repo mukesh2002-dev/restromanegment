@@ -83,6 +83,7 @@ export const menuItemSchema = z.object({
   isVeg: z.boolean().optional(),
   isAvailable: z.boolean().optional(),
   imageUrl: z.string().url().optional().or(z.literal("")),
+  servingUnit: z.enum(["PCS","PLATE","BOWL","GLASS","HALF","FULL","THALI","BOTTLE"]).optional(),
   sku: z.string().max(40).optional().or(z.literal("")),
   prepTimeMin: z.number().int().min(1).max(240).optional(),
   variants: z.array(z.object({ name: z.string().min(1), priceDelta: z.number() })).optional(),

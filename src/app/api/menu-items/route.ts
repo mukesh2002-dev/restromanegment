@@ -30,17 +30,17 @@ export async function POST(req: Request) {
   const body = await req.json().catch(()=>null);
   const parsed = menuItemSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error:"Invalid", details: parsed.error.flatten() }, { status:400 });
-  const { categoryId, name, description, price, taxPercent, isVeg, isAvailable, imageUrl, sku, prepTimeMin, variants, addOns } = parsed.data;
+  const { categoryId, name, description, price, taxPercent, isVeg, isAvailable, imageUrl, servingUnit, sku, prepTimeMin, variants, addOns } = parsed.data;
   const dbOk = await isDbAvailable();
   if (!dbOk) {
-    const created = { id:`mi_${Date.now()}`, restaurantId: session.restaurantId, categoryId, name, description:description||null, price, taxPercent:taxPercent??5, isVeg:isVeg??true, isAvailable:isAvailable??true, imageUrl:imageUrl||null, sku:sku||null, prepTimeMin:prepTimeMin||15, variants: variants?.map(v=>({ id:`var_${Date.now()}_${Math.random()}`, ...v }))||[], addOns: addOns?.map(a=>({ id:`addon_${Date.now()}_${Math.random()}`, ...a }))||[] };
+    const created = { id:`mi_${Date.now()}`, restaurantId: session.restaurantId, categoryId, name, description:description||null, price, taxPercent:taxPercent??5, isVeg:isVeg??true, isAvailable:isAvailable??true, imageUrl:imageUrl||null, servingUnit: servingUnit||"PLATE", sku:sku||null, prepTimeMin:prepTimeMin||15, variants: variants?.map(v=>({ id:`var_${Date.now()}_${Math.random()}`, ...v }))||[], addOns: addOns?.map(a=>({ id:`addon_${Date.now()}_${Math.random()}`, ...a }))||[] };
     return NextResponse.json(created, { status:201 });
   }
   try {
     const created = await prisma.menuItem.create({
       data:{
         restaurantId: session.restaurantId,
-        categoryId, name, description, price, taxPercent: taxPercent??5, isVeg:isVeg??true, isAvailable:isAvailable??true, imageUrl: imageUrl||null, sku: sku||null, prepTimeMin: prepTimeMin||15,
+        categoryId, name, description, price, taxPercent: taxPercent??5, isVeg:isVeg??true, isAvailable:isAvailable??true, imageUrl: imageUrl||null, servingUnit: servingUnit as never || "PLATE", sku: sku||null, prepTimeMin: prepTimeMin||15,
         variants: variants? { create: variants.map(v=>({ name:v.name, priceDelta:v.priceDelta })) } : undefined,
         addOns: addOns? { create: addOns.map(a=>({ name:a.name, price:a.price })) } : undefined,
       },

@@ -123,6 +123,17 @@ enum InventoryUnit {
   PACK
 }
 
+enum ServingUnit {
+  PCS
+  PLATE
+  BOWL
+  GLASS
+  HALF
+  FULL
+  THALI
+  BOTTLE
+}
+
 enum PurchaseOrderStatus {
   DRAFT
   ORDERED
@@ -287,6 +298,7 @@ model MenuItem {
   isVeg        Boolean    @default(true)
   isAvailable  Boolean    @default(true)
   imageUrl     String?
+  servingUnit  ServingUnit @default(PLATE)
   sku          String?    @unique
   prepTimeMin  Int?       @default(15)
   createdAt    DateTime   @default(now())
