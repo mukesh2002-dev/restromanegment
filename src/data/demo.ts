@@ -1,5 +1,6 @@
 // Demo data generators - realistic fictional static data for UI fallback
 // Counts as per master spec: 1 restaurant, 20 staff, 30 tables, 80 menu items, 500 customers, 1000 bills, 500 reviews, 700 loyalty tx, 300 coupons
+import { getServingUnit, getImageForItem, slugForName } from "../lib/menu-helpers";
 
 export const demoRestaurant = {
   id: "rest_1",
@@ -58,57 +59,22 @@ const menuNames = [
   "Samosa","Kachori","Pav Bhaji","Chole Bhature","Aloo Paratha","Gobi Paratha","Cheese Maggi","Veg Sandwich"
 ];
 
-function getServingUnitDemo(name:string, slug:string): string {
-  const n=name.toLowerCase();
-  if (slug==="breads") return "PCS";
-  if (slug==="beverages") return "GLASS";
-  if (slug==="desserts") return "BOWL";
-  if (n.includes("thali")) return "THALI";
-  if (["roti","naan","paratha","kulcha","dosa","idli","vada","samosa","kachori","bhature","pav"].some(k=>n.includes(k))) return "PCS";
-  if (n.includes("chai")||n.includes("coffee")||n.includes("lassi")||n.includes("mojito")||n.includes("shake")||n.includes("lime")||n.includes("tea")) return "GLASS";
-  if (["gulab","rasgulla","kulfi","ice cream","brownie","halwa","phirni","rasmalai"].some(k=>n.includes(k))) return "BOWL";
-  return "PLATE";
-}
-const curatedImagesDemo: Record<string,string> = {
-  "Paneer Tikka":"https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&q=80&auto=format&fit=crop",
-  "Chicken Tikka":"https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=600&q=80&auto=format&fit=crop",
-  "Veg Manchurian":"https://images.unsplash.com/photo-1585032226651-759b368d7246?w=600&q=80&auto=format&fit=crop",
-  "Gobi 65":"https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&auto=format&fit=crop",
-  "Dal Tadka":"https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80&auto=format&fit=crop",
-  "Paneer Butter Masala":"https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=600&q=80&auto=format&fit=crop",
-  "Veg Biryani":"https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=600&q=80&auto=format&fit=crop",
-  "Chicken Biryani":"https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&q=80&auto=format&fit=crop",
-  "Tandoori Roti":"https://images.unsplash.com/photo-1626132647528-4d28822f74ef?w=600&q=80&auto=format&fit=crop",
-  "Butter Naan":"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80&auto=format&fit=crop",
-  "Gulab Jamun":"https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&q=80&auto=format&fit=crop",
-  "Masala Chai":"https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&auto=format&fit=crop",
-  "Masala Dosa":"https://images.unsplash.com/photo-1610192299482-665286e2120a?w=600&q=80&auto=format&fit=crop",
-  "Hakka Noodles":"https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=80&auto=format&fit=crop",
-  "Veg Thali":"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80&auto=format&fit=crop",
-};
-const fallbackBySlugDemo: Record<string,string> = {
-  "starters":"https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=600&q=80&auto=format&fit=crop",
-  "main-course":"https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80&auto=format&fit=crop",
-  "biryani-rice":"https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=600&q=80&auto=format&fit=crop",
-  "breads":"https://images.unsplash.com/photo-1626132647528-4d28822f74ef?w=600&q=80&auto=format&fit=crop",
-  "desserts":"https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&q=80&auto=format&fit=crop",
-  "beverages":"https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&auto=format&fit=crop",
-  "south-indian":"https://images.unsplash.com/photo-1610192299482-665286e2120a?w=600&q=80&auto=format&fit=crop",
-  "chinese":"https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=80&auto=format&fit=crop",
-};
 export const demoMenuItems = menuNames.slice(0,80).map((name,i)=> {
-  const catSlug = categoriesSeed[i % 8].slug;
+  const trueSlug = slugForName(name);
+  const catIdx = categoriesSeed.findIndex(c=>c.slug===trueSlug);
+  const cat = categoriesSeed[catIdx >=0 ? catIdx : i % 8];
+  const catId = `cat_${categoriesSeed.findIndex(c=>c.slug===cat.slug)+1}`;
   return {
   id: `mi_${i+1}`,
-  categoryId: `cat_${(i % 8)+1}`,
+  categoryId: catId,
   name,
   description: `Delicious ${name} prepared with authentic spices`,
   price: 120 + (i*13)%350,
   taxPercent: 5,
   isVeg: i % 3 !== 0,
   isAvailable: i % 17 !== 0,
-  imageUrl: curatedImagesDemo[name] || fallbackBySlugDemo[catSlug] || null,
-  servingUnit: getServingUnitDemo(name, catSlug) as string,
+  imageUrl: getImageForItem(name, trueSlug),
+  servingUnit: getServingUnit(name, trueSlug),
   prepTimeMin: 10 + (i%20),
 };
 });

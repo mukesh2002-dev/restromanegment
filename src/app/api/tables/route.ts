@@ -9,7 +9,19 @@ export async function GET() {
   const dbOk = await isDbAvailable();
   if (!dbOk) return NextResponse.json(demoTables);
   const session = await getSession();
-  const tables = await prisma.table.findMany({ where:{ restaurantId: session?.restaurantId || undefined }, orderBy:{ number:"asc" } });
+  let restaurantId: string | undefined = session?.restaurantId || undefined;
+  if (session?.restaurantId) {
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
+  } else {
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
+  }
+  const tables = await prisma.table.findMany({ where:{ restaurantId }, orderBy:{ number:"asc" } });
+  if (tables.length===0 && restaurantId) {
+    const all = await prisma.table.findMany({ orderBy:{ number:"asc" } });
+    if (all.length) return NextResponse.json(all);
+  }
   return NextResponse.json(tables);
 }
 
@@ -28,7 +40,10 @@ export async function POST(req: Request) {
     return NextResponse.json(created, { status:201 });
   }
   try {
-    const created = await prisma.table.create({ data:{ restaurantId: session.restaurantId, number, capacity, floor, area, status: status as never, qrToken } });
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
+    const created = await prisma.table.create({ data:{ restaurantId, number, capacity, floor, area, status: status as never, qrToken } });
     return NextResponse.json(created, { status:201 });
   } catch (e: unknown) {
     const msg = e instanceof Error? e.message:"Error";

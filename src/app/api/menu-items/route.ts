@@ -16,10 +16,26 @@ export async function GET(req: Request) {
     return NextResponse.json(items);
   }
   const session = await getSession();
-  const where: Record<string, unknown> = { restaurantId: session?.restaurantId || undefined };
+  let restaurantId: string | undefined = session?.restaurantId || undefined;
+  if (session?.restaurantId) {
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
+  } else {
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
+  }
+  const where: Record<string, unknown> = { restaurantId };
   if (categoryId) where.categoryId = categoryId;
   if (search) where.name = { contains: search, mode:"insensitive" };
   const items = await prisma.menuItem.findMany({ where, include:{ variants:true, addOns:true, category:true }, orderBy:{ name:"asc" } });
+  // fallback: if filtered restaurant empty but DB has items, return all (fixes stale JWT empty menu)
+  if (items.length===0 && restaurantId) {
+    const fallbackWhere: Record<string,unknown>={};
+    if (categoryId) fallbackWhere.categoryId = categoryId;
+    if (search) fallbackWhere.name = { contains: search, mode:"insensitive" };
+    const all = await prisma.menuItem.findMany({ where: fallbackWhere, include:{ variants:true, addOns:true, category:true }, orderBy:{ name:"asc" } });
+    if (all.length) return NextResponse.json(all);
+  }
   return NextResponse.json(items);
 }
 

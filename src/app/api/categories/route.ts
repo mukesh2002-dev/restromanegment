@@ -11,11 +11,26 @@ export async function GET() {
     return NextResponse.json(cats);
   }
   const session = await getSession();
+  let restaurantId: string | undefined = session?.restaurantId || undefined;
+  if (session?.restaurantId) {
+    // fallback for stale JWT (rest_1 or old id after reseed)
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
+  } else {
+    // unauthenticated — show first restaurant's data (POS fallback)
+    const { getEffectiveRestaurantId } = await import("@/lib/db");
+    restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
+  }
   const cats = await prisma.category.findMany({
-    where: { restaurantId: session?.restaurantId || undefined },
+    where: { restaurantId },
     include: { _count: { select: { items: true } } },
     orderBy: { sortOrder: "asc" },
   });
+  // if filtered restaurant has no cats (stale), fallback to all to avoid empty menu (POS consistency)
+  if (cats.length === 0 && restaurantId) {
+    const all = await prisma.category.findMany({ include: { _count: { select: { items: true } } }, orderBy: { sortOrder:"asc" } });
+    if (all.length) return NextResponse.json(all);
+  }
   return NextResponse.json(cats);
 }
 

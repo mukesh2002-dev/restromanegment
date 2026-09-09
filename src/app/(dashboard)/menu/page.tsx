@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { demoCategories, demoMenuItems } from "@/data/demo";
+import { UNIT_OPTIONS, UNIT_LABEL, UNIT_HINT } from "@/lib/menu-helpers";
 
 type Category = { id:string; name:string; slug:string; sortOrder:number; isActive?:boolean; _count?:{items:number} };
 type MenuItem = {
@@ -14,17 +15,7 @@ type MenuItem = {
   category?:{name:string; slug?:string}; variants?:{id:string;name:string;priceDelta:number}[]; addOns?:{id:string;name:string;price:number}[]
 };
 
-const UNIT_OPTIONS = ["PCS","PLATE","BOWL","GLASS","THALI","HALF","FULL","BOTTLE"] as const;
-const UNIT_LABEL: Record<string,string> = { PCS:"PCS", PLATE:"Plate", BOWL:"Bowl", GLASS:"Glass", THALI:"Thali", HALF:"Half", FULL:"Full", BOTTLE:"Bottle" };
-const UNIT_HINT: Record<string,string> = {
-  PCS: "Roti, Naan, Paratha, Kulcha, Dosa, Samosa → PCS",
-  PLATE: "Sabzi, Dal, Paneer, Biryani, Noodles → Plate",
-  BOWL: "Gulab Jamun, Ice Cream, Halwa → Bowl",
-  GLASS: "Chai, Coffee, Lassi, Mojito, Shake → Glass",
-  THALI: "Veg/Non-Veg Thali",
-  BOTTLE: "Water, Cold Drink",
-  HALF: "Half portion", FULL: "Full portion",
-};
+
 
 function unitBadgeClass(unit?:string|null){
   switch(unit){
@@ -58,12 +49,15 @@ export default function MenuPage() {
         fetch("/api/categories").then(r=>r.json()).catch(()=> demoCategories),
         fetch(`/api/menu-items${filterCat?`?categoryId=${filterCat}`: search?`?search=${encodeURIComponent(search)}`:""}`).then(r=>r.json()).catch(()=> demoMenuItems),
       ]);
-      setCats(Array.isArray(cRes)?cRes: demoCategories);
-      const list = Array.isArray(iRes)? iRes: demoMenuItems;
-      let filtered = list;
-      if (search && !filterCat) filtered = list.filter((m:MenuItem)=> m.name.toLowerCase().includes(search.toLowerCase()));
-      if (filterCat) filtered = list.filter((m:MenuItem)=> m.categoryId===filterCat);
+      // POS parity: fallback to demo when DB empty or stale JWT (avoids empty menu while POS shows demo)
+      const catsList = Array.isArray(cRes) && cRes.length ? cRes : demoCategories;
+      const rawList = Array.isArray(iRes) && iRes.length ? iRes : demoMenuItems;
+      setCats(catsList);
+      let filtered = rawList as MenuItem[];
+      if (search && !filterCat) filtered = rawList.filter((m:MenuItem)=> m.name.toLowerCase().includes(search.toLowerCase()));
+      if (filterCat) filtered = rawList.filter((m:MenuItem)=> m.categoryId===filterCat);
       setItems(filtered);
+      if (!rawList.length) setMsg("DB empty or session stale — showing demo data. Re-login as OWNER to create.");
     } catch { setCats(demoCategories as Category[]); setItems(demoMenuItems as unknown as MenuItem[]); }
     setLoading(false);
   }
@@ -186,12 +180,12 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Category overview */}
+      {/* Category overview — shows live count, not demo */}
       <div className="grid gap-3 md:grid-cols-4">
         {cats.slice(0,8).map(c=>(
           <Card key={c.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-2"><CardTitle className="text-sm">{c.name}</CardTitle><CardDescription className="text-[11px] break-all">/{c.slug} • order {c.sortOrder}</CardDescription></CardHeader>
-            <CardContent className="text-xs text-zinc-500">{demoMenuItems.filter(m=>m.categoryId===c.id).length} items • {c.isActive===false?"Inactive":"Active"}</CardContent>
+            <CardContent className="text-xs text-zinc-500">{items.filter(m=>m.categoryId===c.id).length || c._count?.items || 0} items • {c.isActive===false?"Inactive":"Active"}</CardContent>
           </Card>
         ))}
       </div>

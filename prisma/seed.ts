@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { getServingUnit, slugForName, curatedImages, fallbackBySlug } from "../src/lib/menu-helpers";
 
 const prisma = new PrismaClient();
 
@@ -58,67 +59,6 @@ async function main() {
     "Hakka Noodles","Manchurian Gravy","Chilli Paneer","Schezwan Fried Rice","Spring Roll","Honey Chilli Potato","Veg Noodles","Chicken Noodles",
     "Veg Thali","Non-Veg Thali","Paneer Lababdar","Chicken Changezi","Egg Curry","Fish Curry","Prawns Masala","Veg Pulao",
   ];
-  // Helpers: serving unit (PCS for roti/naan etc, PLATE for sabzi) & curated images (Petpooja/Zomato style)
-  function getServingUnit(name: string, slug: string): "PCS" | "PLATE" | "BOWL" | "GLASS" | "THALI" | "HALF" | "FULL" | "BOTTLE" {
-    const n = name.toLowerCase();
-    if (slug === "breads") return "PCS";
-    if (slug === "beverages") {
-      if (n.includes("bottle") || n.includes("water")) return "BOTTLE";
-      return "GLASS";
-    }
-    if (slug === "desserts") return "BOWL";
-    if (n.includes("thali")) return "THALI";
-    if (["roti","naan","paratha","kulcha","dosa","idli","vada","samosa","kachori","bhature","pav","thali"].some(k => n.includes(k))) return "PCS";
-    if (n.includes("chai") || n.includes("coffee") || n.includes("lassi") || n.includes("mojito") || n.includes("shake") || n.includes("lime") || n.includes("tea") ) return "GLASS";
-    if (n.includes("gulab") || n.includes("rasgulla") || n.includes("kulfi") || n.includes("ice cream") || n.includes("brownie") || n.includes("halwa") || n.includes("phirni") || n.includes("rasmalai")) return "BOWL";
-    return "PLATE";
-  }
-  const curatedImages: Record<string, string> = {
-    "Paneer Tikka":"https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&q=80&auto=format&fit=crop",
-    "Chicken Tikka":"https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=600&q=80&auto=format&fit=crop",
-    "Veg Manchurian":"https://images.unsplash.com/photo-1585032226651-759b368d7246?w=600&q=80&auto=format&fit=crop",
-    "Gobi 65":"https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80&auto=format&fit=crop",
-    "Chicken 65":"https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80&auto=format&fit=crop",
-    "Dal Tadka":"https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80&auto=format&fit=crop",
-    "Dal Makhani":"https://images.unsplash.com/photo-1596797038530-2c107229654b?w=600&q=80&auto=format&fit=crop",
-    "Paneer Butter Masala":"https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=600&q=80&auto=format&fit=crop",
-    "Chicken Butter Masala":"https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=600&q=80&auto=format&fit=crop",
-    "Veg Biryani":"https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=600&q=80&auto=format&fit=crop",
-    "Chicken Biryani":"https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&q=80&auto=format&fit=crop",
-    "Mutton Biryani":"https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=80&auto=format&fit=crop",
-    "Tandoori Roti":"https://images.unsplash.com/photo-1626132647528-4d28822f74ef?w=600&q=80&auto=format&fit=crop",
-    "Butter Naan":"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80&auto=format&fit=crop",
-    "Garlic Naan":"https://images.unsplash.com/photo-1610192299482-665286e2120a?w=600&q=80&auto=format&fit=crop",
-    "Gulab Jamun":"https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&q=80&auto=format&fit=crop",
-    "Masala Chai":"https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&auto=format&fit=crop",
-    "Cold Coffee":"https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600&q=80&auto=format&fit=crop",
-    "Masala Dosa":"https://images.unsplash.com/photo-1610192299482-665286e2120a?w=600&q=80&auto=format&fit=crop",
-    "Hakka Noodles":"https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=80&auto=format&fit=crop",
-    "Veg Thali":"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80&auto=format&fit=crop",
-  };
-  const fallbackBySlug: Record<string,string> = {
-    "starters":"https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=600&q=80&auto=format&fit=crop",
-    "main-course":"https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80&auto=format&fit=crop",
-    "biryani-rice":"https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=600&q=80&auto=format&fit=crop",
-    "breads":"https://images.unsplash.com/photo-1626132647528-4d28822f74ef?w=600&q=80&auto=format&fit=crop",
-    "desserts":"https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&q=80&auto=format&fit=crop",
-    "beverages":"https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&auto=format&fit=crop",
-    "south-indian":"https://images.unsplash.com/photo-1610192299482-665286e2120a?w=600&q=80&auto=format&fit=crop",
-    "chinese":"https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=80&auto=format&fit=crop",
-  };
-  // proper category mapping — reference: Petpooja correct grouping (Roti= Breads PCS, Sabzi=Main-course Plate)
-  function slugForName(name: string): string {
-    const n = name.toLowerCase();
-    if (["roti","naan","paratha","kulcha"].some(k=>n.includes(k))) return "breads";
-    if (["gulab","rasgulla","kulfi","ice cream","brownie","halwa","phirni","rasmalai"].some(k=>n.includes(k))) return "desserts";
-    if (["chai","coffee","lassi","mojito","lime","shake","tea"].some(k=>n.includes(k))) return "beverages";
-    if (["biryani","jeera rice","steamed rice","fried rice","pulao"].some(k=>n.includes(k))) return "biryani-rice";
-    if (["dosa","idli","vada","uttapam","pongal","upma","poha","medu"].some(k=>n.includes(k))) return "south-indian";
-    if (["noodles","manchurian","chilli paneer","schezwan","spring roll","honey chilli"].some(k=>n.includes(k))) return "chinese";
-    if (["thali"].some(k=>n.includes(k))) return "main-course";
-    if (["paneer tikka","chicken tikka","manchurian","gobi 65","chicken 65","hara bhara","fish amritsari","mushroom chilli","samosa","kachori"].some(k=>n.includes(k))) return "starters";
-    return "main-course";
-  }
   const slugToCat = Object.fromEntries(cats.map(c=>[c.slug,c]));
   // menu items - createMany bulk (with imageUrl + servingUnit, correctly grouped)
   const menuItemsData = Array.from({ length: 80 }, (_, i) => {
