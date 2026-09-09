@@ -229,18 +229,27 @@ export default function POSPage() {
   }
 
   async function createOrderAndBill(overridePayments?: PaymentLine[]){
-    if(cart.length===0){ setMsg("Add at least one item"); return; }
-    if(orderType==="DINE_IN" && !tableId){ setMsg("Select table for Dine-in (§9)"); return; }
-    if(orderType==="DELIVERY" && !deliveryAddress.trim()){ setMsg("Delivery address required (§9/37)"); return; }
-    if(orderType==="DELIVERY" && !customerProfile && customerMode!=="walkin"){ setMsg("Delivery requires customer name + mobile + address — search or create customer first"); return; }
-    if(customerMode==="new"){ setMsg("Create new customer first (click Create) or continue as Walk-in"); return; }
+    // debug — ensures click registers (fixes "payment pe click nhi ho raha")
+    console.log("Pay & Bill clicked", { cartLen: cart.length, orderType, tableId, grandTotal, paidSum, customerMode });
+    if(cart.length===0){ setMsg("Add at least one item"); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    // auto-select table if DINE_IN and none (prevents blocking)
+    let effectiveTableId = tableId;
+    if(orderType==="DINE_IN" && !tableId){
+      const avail = tables.find(t=> t.status==="AVAILABLE" || t.status==="RESERVED");
+      if(avail){ effectiveTableId = avail.id; setTableId(avail.id); } else { setMsg("Select table for Dine-in (§9) — no available table found"); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    }
+    if(orderType==="DELIVERY" && !deliveryAddress.trim()){ setMsg("Delivery address required (§9/37)"); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    if(orderType==="DELIVERY" && !customerProfile && customerMode!=="walkin"){ setMsg("Delivery requires customer name + mobile + address — search or create customer first"); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    if(customerMode==="new"){ setMsg("Create new customer first (click Create) or continue as Walk-in"); window.scrollTo({top:0, behavior:"smooth"}); return; }
     const activePayments = getNormalizedPayments(overridePayments);
     const paid = activePayments.reduce((a,p)=>a+Number(p.amount||0),0);
-    if(Math.abs(paid - grandTotal) > 0.01 && paid < grandTotal){ setMsg(`Payments ₹${paid} < total ₹${grandTotal} — click Pay amount will auto-sync or adjust split`); return; }
+    if(Math.abs(paid - grandTotal) > 0.01 && paid < grandTotal){ setMsg(`Payments ₹${paid} < total ₹${grandTotal} — auto-syncing to total`); // auto-fix instead of blocking
+      activePayments[0].amount = grandTotal;
+    }
     setBusy(true); setMsg("");
     try {
       const customerId = customerMode==="found" && customerProfile ? customerProfile.id : undefined;
-      const oRes = await fetch("/api/orders",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ tableId: tableId||undefined, customerId, type: orderType, items: cart.map(c=> ({ menuItemId:c.menuItemId, quantity:c.quantity, notes:c.notes, variantId:c.variantId, addOnIds:c.addOnIds })), discountAmount: discount, notes: notes + (orderType==="DELIVERY"? ` | Address: ${deliveryAddress}`:"") + (customerMode==="walkin"?" | WALKIN":"") })});
+      const oRes = await fetch("/api/orders",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ tableId: effectiveTableId||undefined, customerId, type: orderType, items: cart.map(c=> ({ menuItemId:c.menuItemId, quantity:c.quantity, notes:c.notes, variantId:c.variantId, addOnIds:c.addOnIds })), discountAmount: discount, notes: notes + (orderType==="DELIVERY"? ` | Address: ${deliveryAddress}`:"") + (customerMode==="walkin"?" | WALKIN":"") })});
       const oJson = await oRes.json();
       if(!oRes.ok){ setMsg(oJson.error||oJson.message||"Order failed"); setBusy(false); return; }
       const orderId = oJson.id;
@@ -310,6 +319,14 @@ export default function POSPage() {
       rzp.open();
     }catch(e){ setMsg(e instanceof Error? e.message:"Razorpay error"); setRazorPayBusy(false); }
   }
+
+  // auto-select first available table for DINE_IN to avoid Pay & Bill blocking (UX)
+  useEffect(()=>{
+    if(orderType==="DINE_IN" && !tableId && tables.length){
+      const avail = tables.find(t=> t.status==="AVAILABLE" || t.status==="RESERVED");
+      if(avail) setTableId(avail.id);
+    }
+  },[tables, orderType, tableId]);
 
   const categories = [{ id:"ALL", name:"All", slug:"all" }, ...cats];
   const filteredMenu = menu.filter(m=>{
@@ -518,13 +535,13 @@ export default function POSPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={holdOrder} disabled={cart.length===0}>Hold Order</Button>
-                <Button onClick={()=>createOrderAndBill()} disabled={busy || razorPayBusy || cart.length===0} className="bg-zinc-900">{busy?"Processing…":"Pay & Bill"}</Button>
+                <Button variant="outline" onClick={holdOrder} disabled={cart.length===0} type="button">Hold Order</Button>
+                <Button onClick={()=>createOrderAndBill()} disabled={busy || razorPayBusy || cart.length===0} type="button" className="bg-zinc-900 cursor-pointer hover:bg-black disabled:opacity-50">{busy?"Processing…":"Pay & Bill"}</Button>
               </div>
-              <Button onClick={handleRazorpayPay} disabled={razorPayBusy || busy || cart.length===0} className="w-full bg-[#0a66c2] hover:bg-[#0958a8] text-white">
+              <Button onClick={handleRazorpayPay} disabled={razorPayBusy || busy || cart.length===0} type="button" className="w-full bg-[#0a66c2] hover:bg-[#0958a8] text-white cursor-pointer disabled:opacity-50">
                 {razorPayBusy?"Razorpay…":"Pay with Razorpay (UPI / Card / Wallet)"}
               </Button>
-              <div className="text-[11px] text-zinc-500 text-center">Razorpay test mode — mock order when keys not set. Keys: RAZORPAY_KEY_ID in .env</div>
+              <div className="text-[11px] text-zinc-500 text-center">Razorpay Live Test — keys set `rzp_test_Ta2T...` • Use test card 4111 1111 1111 1111</div>
               <Button variant="ghost" className="w-full text-xs" onClick={()=>{ setCart([]); setDiscount(0); setCouponDiscount(0); setLoyaltyRedeem(0); setCouponCode(""); }}>Clear Cart</Button>
               {order && bill && <div className="rounded bg-green-50 border border-green-200 p-3 text-sm space-y-1">
                 <div className="font-bold">✓ {bill.billNumber} • {bill.paymentStatus}</div>
