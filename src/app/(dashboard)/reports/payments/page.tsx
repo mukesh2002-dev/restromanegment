@@ -25,10 +25,11 @@ type Row = {
   isSplit: boolean;
 };
 
-function methodIcon(m: string) {
-  const map: Record<string, string> = { CASH: "ðŸ’µ", UPI: "ðŸ“±", CARD: "ðŸ’³", ONLINE: "ðŸŸ¦", WALLET: "ðŸ‘›", SPLIT: "ðŸ”€" };
-  return map[m] || "ðŸ’°";
+function methodLabel(m: string) {
+  const map: Record<string, string> = { CASH: "नकद", UPI: "UPI", CARD: "कार्ड", ONLINE: "Online", WALLET: "Wallet", SPLIT: "Split" };
+  return map[m] || m;
 }
+function methodIcon(m: string) { return methodLabel(m); }
 function statusBadge(s: string) {
   const cls: Record<string, string> = {
     PAID: "bg-green-100 text-green-800 border-green-200",
@@ -138,7 +139,7 @@ export default function PaymentsReportPage() {
         <div className="grid gap-3 md:grid-cols-4">
           <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-zinc-500">Total Bills</CardTitle></CardHeader><CardContent className="text-xl font-bold">{summary.totalBills}</CardContent></Card>
           <Card className="bg-green-50 border-green-200"><CardHeader className="pb-1"><CardTitle className="text-xs text-green-700">Total Amount</CardTitle></CardHeader><CardContent className="text-xl font-bold text-green-700">₹{summary.totalAmount.toLocaleString("en-IN")}</CardContent></Card>
-          <Card><CardHeader className="pb-1"><CardTitle className="text-xs">By Method</CardTitle></CardHeader><CardContent className="space-y-1 text-xs">{summary.byMethod.map((m) => <div key={m.method} className="flex justify-between"><span>{methodIcon(m.method)} {m.method} â€¢ {m.count}</span><span>₹{m.amount.toLocaleString("en-IN")}</span></div>)}</CardContent></Card>
+          <Card><CardHeader className="pb-1"><CardTitle className="text-xs">By Method</CardTitle></CardHeader><CardContent className="space-y-1 text-xs">{summary.byMethod.map((m) => <div key={m.method} className="flex justify-between"><span>{methodLabel(m.method)} • {m.count}</span><span>₹{m.amount.toLocaleString("en-IN")}</span></div>)}</CardContent></Card>
           <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Today&apos;s Summary</CardTitle></CardHeader><CardContent className="space-y-1 text-xs">
             {summary.byMethod.map((m) => <div key={m.method} className="flex justify-between"><span>{m.method}</span><span>₹{m.amount.toLocaleString("en-IN")}</span></div>)}
             <div className="border-t pt-1 flex justify-between font-bold"><span>TOTAL</span><span>₹{summary.totalAmount.toLocaleString("en-IN")}</span></div>
@@ -210,8 +211,8 @@ export default function PaymentsReportPage() {
               <div className="md:hidden p-3 space-y-2">
                 {rows.map((r) => (
                   <div key={r.id} className="border rounded p-3 bg-white dark:bg-zinc-900 space-y-1">
-                    <div className="flex justify-between"><span className="font-bold text-sm">{r.customerName} â€¢ ₹{r.totalAmount}</span><Badge className={`border text-[11px] ${statusBadge(r.paymentStatus)}`}>{r.paymentStatus}</Badge></div>
-                    <div className="text-xs text-zinc-500">{new Date(r.paidAt || r.createdAt).toLocaleString("en-IN")} â€¢ {r.orderNumber}</div>
+                    <div className="flex justify-between"><span className="font-bold text-sm">{r.customerName} • ₹{r.totalAmount}</span><Badge className={`border text-[11px] ${statusBadge(r.paymentStatus)}`}>{r.paymentStatus}</Badge></div>
+                    <div className="text-xs text-zinc-500">{new Date(r.paidAt || r.createdAt).toLocaleString("en-IN")} • {r.orderNumber}</div>
                     <div className="flex justify-between items-center"><span className="text-xs">{methodIcon(r.isSplit ? "SPLIT" : r.payments[0]?.method || "")} {r.isSplit ? "Split" : r.payments[0]?.method}</span><Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDetail(r)}>View</Button></div>
                   </div>
                 ))}
@@ -223,7 +224,7 @@ export default function PaymentsReportPage() {
 
       {total > take && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-xs text-zinc-500">{total} total â€¢ Page {page}/{Math.max(1, Math.ceil(total / take))}</span>
+          <span className="text-xs text-zinc-500">{total} total • Page {page}/{Math.max(1, Math.ceil(total / take))}</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</Button>
             <Button size="sm" variant="outline" disabled={page >= Math.ceil(total / take)} onClick={() => setPage((p) => p + 1)}>Next</Button>
@@ -235,10 +236,10 @@ export default function PaymentsReportPage() {
       {detail && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => setDetail(null)}>
           <Card className="w-full max-w-lg max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <CardHeader><CardTitle className="text-base">Payment Details</CardTitle><CardDescription>{detail.billNumber} â€¢ {detail.orderNumber}</CardDescription></CardHeader>
+            <CardHeader><CardTitle className="text-base">Payment Details</CardTitle><CardDescription>{detail.billNumber} • {detail.orderNumber}</CardDescription></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="grid gap-2 text-xs">
-                <div className="flex justify-between"><span className="text-zinc-500">Customer</span><span className="font-medium">{detail.customerName} â€¢ {detail.customerPhone}</span></div>
+                <div className="flex justify-between"><span className="text-zinc-500">Customer</span><span className="font-medium">{detail.customerName} • {detail.customerPhone}</span></div>
                 <div className="flex justify-between"><span className="text-zinc-500">Date</span><span>{new Date(detail.paidAt || detail.createdAt).toLocaleString("en-IN")}</span></div>
                 <div className="flex justify-between"><span className="text-zinc-500">Payment ID</span><span className="font-mono">{detail.id.slice(0, 12)}</span></div>
               </div>

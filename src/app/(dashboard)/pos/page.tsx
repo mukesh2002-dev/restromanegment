@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Search, Utensils } from "lucide-react";
 import { demoMenuItems, demoTables, demoCategories } from "@/data/demo";
 
 type MenuItem = { id:string; name:string; price:number; taxPercent:number; isVeg:boolean; isAvailable:boolean; categoryId?:string; imageUrl?:string|null; variants?:{id:string;name:string;priceDelta:number}[]; addOns?:{id:string;name:string;price:number}[] };
@@ -138,7 +139,7 @@ export default function POSPage() {
         setCustomerProfile(j.customer);
         setCustomerMode("found");
         setNewCustomerForm({ name: j.customer.name, phone: j.customer.phone, email: j.customer.email||"", birthday: j.customer.birthday? new Date(j.customer.birthday).toISOString().slice(0,10):"" });
-        setCustomerMsg(`Found: ${j.customer.name} â€¢ Visit ${j.customer.totalVisits||j.customer.totalOrders||0} â€¢ Spend ₹${Math.round(j.customer.totalSpending||j.customer.totalSpend||0)} â€¢ Points ${j.customer.loyaltyPoints||j.customer.loyaltyAccount?.points||0}`);
+        setCustomerMsg(`Found: ${j.customer.name} • Visit ${j.customer.totalVisits||j.customer.totalOrders||0} • Spend ₹${Math.round(j.customer.totalSpending||j.customer.totalSpend||0)} • Points ${j.customer.loyaltyPoints||j.customer.loyaltyAccount?.points||0}`);
         // auto apply available coupons hint
         if(j.customer.availableCoupons?.length) setCouponMsg(`${j.customer.availableCoupons.length} active coupon(s) available`);
       } else {
@@ -161,7 +162,7 @@ export default function POSPage() {
       setCustomerProfile({ id: j.id, name: j.name, phone: j.phone, email: j.email, birthday: j.birthday, totalVisits:0, totalSpend:0, totalOrders:0, loyaltyPoints:0, availableCoupons:[] });
       setCustomerPhone(j.phone);
       setCustomerMode("found");
-      setCustomerMsg(`New customer created: ${j.name} â€¢ ${j.phone} — linked to this order`);
+      setCustomerMsg(`New customer created: ${j.name} • ${j.phone} — linked to this order`);
     } catch{ setCustomerMsg("Create failed"); }
     setCustomerSearching(false);
   }
@@ -316,8 +317,8 @@ export default function POSPage() {
       setPayments(activePayments);
       const earn = (bJson as unknown as {loyaltyEarned?:number}).loyaltyEarned || 0;
       const bal = (bJson as unknown as {loyaltyBalanceAfter?:number}).loyaltyBalanceAfter;
-      if(earn) setMsg(`âœ… Paid â€¢ Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} â€¢ +${earn} pts (bal ${bal}) â€¢ QR ready — saved to CRM`);
-      else setMsg(`âœ… Paid â€¢ Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} â€¢ QR ready — saved to CRM ${bJson.totalAmount <100 ? "(₹100+ to earn)" : ""}`);
+      if(earn) setMsg(`âœ… Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • +${earn} pts (bal ${bal}) • QR ready — saved to CRM`);
+      else setMsg(`âœ… Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • QR ready — saved to CRM ${bJson.totalAmount <100 ? "(₹100+ to earn)" : ""}`);
       setTimeout(()=> document.getElementById("bill-success")?.scrollIntoView({behavior:"smooth", block:"start"}), 150);
       // persist for CRM refresh
       try{
@@ -365,7 +366,7 @@ export default function POSPage() {
         amount: j.amount,
         currency: j.currency || "INR",
         name: "Spice Garden",
-        description: `POS bill ₹${grandTotal} â€¢ ${cart.length} items`,
+        description: `POS bill ₹${grandTotal} • ${cart.length} items`,
         order_id: j.orderId,
         handler: async (resp: { razorpay_order_id:string; razorpay_payment_id:string; razorpay_signature:string })=>{
           try{
@@ -410,7 +411,7 @@ export default function POSPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 dark:text-zinc-100">POS & Billing</h1>
           <div className="flex items-center gap-2">
-            <Badge className="border bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium">{orderType} â€¢ {cart.length} lines â€¢ ₹{grandTotal.toLocaleString("en-IN")}</Badge>
+            <Badge className="border bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium">{orderType} • {cart.length} lines • ₹{grandTotal.toLocaleString("en-IN")}</Badge>
             {holdOrders.length>0 && <Badge className="bg-amber-100 text-amber-800 border-amber-200 px-2.5 py-1 text-xs">{holdOrders.length} held</Badge>}
             {bill && <Badge className="bg-green-600 text-white border-green-600">âœ“ Paid</Badge>}
           </div>
@@ -461,13 +462,13 @@ export default function POSPage() {
                 <CardTitle className="text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Menu — tap to add <span className="font-normal text-zinc-500 text-xs ml-1">({filteredMenu.length})</span></CardTitle>
                 <div className="relative">
                   <Input placeholder="Search dishes..." value={search} onChange={e=>setSearch(e.target.value)} className="w-[200px] h-9 pl-9 bg-white dark:bg-zinc-800" />
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">âŒ•</span>
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 </div>
               </div>
               <CardDescription className="flex flex-wrap gap-2 items-center pt-2">
                 <select value={tableId} onChange={e=>setTableId(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100" disabled={orderType!=="DINE_IN"}>
                   <option value="">Select table {orderType!=="DINE_IN"?"(not needed)":"*"}</option>
-                  {tables.slice(0,40).map(t=><option key={t.id} value={t.id}>{t.number} — {t.status} â€¢ {t.capacity}pax</option>)}
+                  {tables.slice(0,40).map(t=><option key={t.id} value={t.id}>{t.number} — {t.status} • {t.capacity}pax</option>)}
                 </select>
                 {orderType==="DELIVERY" && <Input placeholder="Delivery address * (required)" value={deliveryAddress} onChange={e=>setDeliveryAddress(e.target.value)} className="h-9 min-w-[240px] flex-1 max-w-[320px]" />}
               </CardDescription>
@@ -476,8 +477,8 @@ export default function POSPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[68vh] overflow-auto pr-1">
                 {filteredMenu.map(m=>(
                   <div key={m.id} className={`group border rounded-xl p-3.5 space-y-2.5 bg-white dark:bg-zinc-900 dark:border-zinc-800 shadow-sm hover:shadow-md transition-all ${m.isAvailable?"hover:border-zinc-300 dark:hover:border-zinc-700":"opacity-60"}`}>
-                    <div className="h-20 rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-800/50 flex items-center justify-center text-2xl overflow-hidden">
-                      {m.imageUrl ? <img src={m.imageUrl} alt={m.name} className="h-full w-full object-cover" /> : <span className="text-zinc-400">ðŸ½ï¸</span>}
+                    <div className="h-20 rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-800/50 flex items-center justify-center overflow-hidden">
+                      {m.imageUrl ? <img src={m.imageUrl} alt={m.name} className="h-full w-full object-cover" /> : <Utensils className="h-7 w-7 text-zinc-400" />}
                     </div>
                     <div className="flex items-start justify-between gap-2">
                       <div className="font-semibold text-sm leading-tight text-zinc-900 dark:text-zinc-100 line-clamp-2">{m.name}</div>
@@ -485,7 +486,7 @@ export default function POSPage() {
                     </div>
                     <div className="flex items-baseline gap-1">
                       <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">₹{m.price}</span>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">+{m.taxPercent}% â€¢ {m.isAvailable?<span className="text-green-600 dark:text-green-400 font-medium">Available</span>:<span className="text-red-500">Out</span>}</span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">+{m.taxPercent}% • {m.isAvailable?<span className="text-green-600 dark:text-green-400 font-medium">Available</span>:<span className="text-red-500">Out</span>}</span>
                     </div>
                     {Boolean(m.variants?.length) && <select defaultValue="" onChange={e=>{ if(e.target.value) addToCart(m, e.target.value); e.target.value=""; }} className="w-full border rounded-lg h-8 text-xs px-2 bg-white dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700"><option value="">Variantâ€¦</option>{m.variants!.map(v=><option key={v.id} value={v.id}>{v.name} (+₹{v.priceDelta})</option>)}</select>}
                     {Boolean(m.addOns?.length) && <div className="text-xs space-y-1">{m.addOns!.slice(0,2).map(a=> <label key={a.id} className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300"><input type="checkbox" className="rounded border-zinc-300 dark:border-zinc-600" onChange={e=>{ const checked=e.target.checked; if(checked) addToCart(m, undefined,[a.id]); }} /> {a.name} <span className="text-zinc-500">(+₹{a.price})</span></label>)}</div>}
@@ -502,7 +503,7 @@ export default function POSPage() {
               <CardContent className="space-y-2">
                 {holdOrders.map(h=>(
                   <div key={h.id} className="flex items-center justify-between border rounded-lg p-3 text-sm bg-white dark:bg-zinc-900 dark:border-zinc-700">
-                    <span className="text-zinc-700 dark:text-zinc-300">{h.orderType} â€¢ {h.cart.reduce((a,c)=>a+c.quantity,0)} items â€¢ {new Date(h.createdAt).toLocaleTimeString()} â€¢ Table {h.tableId? tables.find(t=>t.id===h.tableId)?.number||h.tableId.slice(0,6):"—"}</span>
+                    <span className="text-zinc-700 dark:text-zinc-300">{h.orderType} • {h.cart.reduce((a,c)=>a+c.quantity,0)} items • {new Date(h.createdAt).toLocaleTimeString()} • Table {h.tableId? tables.find(t=>t.id===h.tableId)?.number||h.tableId.slice(0,6):"—"}</span>
                     <div className="flex gap-1"><Button size="sm" variant="outline" onClick={()=> resumeHold(h.id)} className="h-7">Resume</Button><Button size="sm" variant="ghost" onClick={()=> deleteHold(h.id)} className="h-7">Ã—</Button></div>
                   </div>
                 ))}
@@ -517,7 +518,7 @@ export default function POSPage() {
             <CardHeader className="pb-3 border-b dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
               <CardTitle className="text-[15px] font-semibold flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
                 <span className="h-6 w-6 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 flex items-center justify-center text-xs font-bold">2</span>
-                Cart â€¢ {cart.length? `${cart.reduce((a,c)=>a+c.quantity,0)} items`:"Empty"}
+                Cart • {cart.length? `${cart.reduce((a,c)=>a+c.quantity,0)} items`:"Empty"}
                 {cart.length>0 && <Badge className="ml-auto bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-0">₹{grandTotal.toLocaleString("en-IN")}</Badge>}
               </CardTitle>
             </CardHeader>
@@ -568,7 +569,7 @@ export default function POSPage() {
                 )}
                 {customerMode==="found" && customerProfile && (
                   <div className="space-y-2.5 text-sm bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded-xl p-3.5 shadow-sm">
-                    <div className="font-bold text-zinc-900 dark:text-zinc-100">{customerProfile.name} â€¢ {customerProfile.phone} {customerProfile.email?`â€¢ ${customerProfile.email}`:""}</div>
+                    <div className="font-bold text-zinc-900 dark:text-zinc-100">{customerProfile.name} • {customerProfile.phone} {customerProfile.email?`• ${customerProfile.email}`:""}</div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <span className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-2 border dark:border-zinc-700">Visits: <b className="text-zinc-900 dark:text-zinc-100">{customerProfile.totalVisits ?? customerProfile.totalOrders}</b></span>
                       <span className="bg-green-50 dark:bg-green-950/30 rounded-lg p-2 border border-green-200 dark:border-green-800">Spend: <b className="text-green-700 dark:text-green-300">₹{Math.round(customerProfile.totalSpending ?? customerProfile.totalSpend ?? 0)}</b></span>
@@ -578,7 +579,7 @@ export default function POSPage() {
                     {Boolean(customerProfile.availableCoupons?.length) && (
                       <div className="text-xs">
                         <div className="font-semibold text-zinc-900 dark:text-zinc-100">Available Coupons ({customerProfile.availableCoupons!.length})</div>
-                        {customerProfile.availableCoupons!.slice(0,3).map(c=> <div key={c.code} className="font-mono border rounded-lg px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 mt-1.5 text-amber-900 dark:text-amber-100">{c.code} â€¢ {c.value}{c.rewardType==="PERCENTAGE"?"%":"₹"} off â€¢ exp {new Date(c.expiryDate).toLocaleDateString()}</div>)}
+                        {customerProfile.availableCoupons!.slice(0,3).map(c=> <div key={c.code} className="font-mono border rounded-lg px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 mt-1.5 text-amber-900 dark:text-amber-100">{c.code} • {c.value}{c.rewardType==="PERCENTAGE"?"%":"₹"} off • exp {new Date(c.expiryDate).toLocaleDateString()}</div>)}
                       </div>
                     )}
                     <div className="text-xs font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-2.5 py-1.5">âœ“ Linked — Loyalty & coupons will apply</div>
@@ -676,7 +677,7 @@ export default function POSPage() {
                     <span className="h-8 w-8 rounded-full bg-green-600 text-white flex items-center justify-center shrink-0 mt-0.5">âœ“</span>
                     <div>
                       <div className="font-bold text-green-800 dark:text-green-200 text-[15px] leading-tight">Payment Successful — Bill {bill.billNumber}</div>
-                      <div className="text-xs text-green-700 dark:text-green-300 mt-1">Order {order.orderNumber} â†’ Customer: {customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} â€¢ Total ₹{bill.totalAmount.toLocaleString("en-IN")}</div>
+                      <div className="text-xs text-green-700 dark:text-green-300 mt-1">Order {order.orderNumber} â†’ Customer: {customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • Total ₹{bill.totalAmount.toLocaleString("en-IN")}</div>
                     </div>
                     <Badge className="ml-auto bg-green-600 text-white border-0 shrink-0">{bill.paymentStatus}</Badge>
                   </div>
@@ -710,17 +711,17 @@ export default function POSPage() {
             <Card id="receipt" className="shadow-lg border-zinc-300 dark:border-zinc-700 print:shadow-none overflow-hidden">
               <CardHeader className="bg-zinc-900 text-white dark:bg-zinc-800 border-b-0">
                 <CardTitle className="text-[15px] flex items-center gap-2 text-white">ðŸ§¾ Print-ready Receipt <span className="text-xs bg-white text-zinc-900 px-2.5 py-1 rounded-full font-bold ml-auto">Bill #{bill.billNumber}</span></CardTitle>
-                <CardDescription className="text-zinc-300 dark:text-zinc-400">Order #{order?.orderNumber || bill.orderId.slice(0,8)} â€¢ {new Date(bill.paidAt || Date.now()).toLocaleString()} â€¢ Table {tables.find(t=>t.id===tableId)?.number || "—"}</CardDescription>
+                <CardDescription className="text-zinc-300 dark:text-zinc-400">Order #{order?.orderNumber || bill.orderId.slice(0,8)} • {new Date(bill.paidAt || Date.now()).toLocaleString()} • Table {tables.find(t=>t.id===tableId)?.number || "—"}</CardDescription>
               </CardHeader>
               <CardContent className="p-5 space-y-4 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
                 <div className="text-center border-b-2 border-dashed border-zinc-300 dark:border-zinc-700 pb-4">
                   <div className="font-black text-lg tracking-tight">SPICE GARDEN</div>
-                  <div className="text-xs text-zinc-600 dark:text-zinc-400">MG Road, Pune â€¢ GST 27ABCDE1234F1Z5 â€¢ +91 98765 43210</div>
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">MG Road, Pune • GST 27ABCDE1234F1Z5 • +91 98765 43210</div>
                   <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-1">Thank you for dining!</div>
                 </div>
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Bill No</span><span className="font-bold font-mono">{bill.billNumber}</span></div>
-                  <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Customer</span><span className="font-semibold">{customerMode==="found"? customerProfile?.name : "Walk-in"} {customerProfile?`â€¢ ${customerProfile.phone}`:""}</span></div>
+                  <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Customer</span><span className="font-semibold">{customerMode==="found"? customerProfile?.name : "Walk-in"} {customerProfile?`• ${customerProfile.phone}`:""}</span></div>
                   <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Status</span><span className="font-bold"><Badge className="bg-green-600 text-white border-0 text-[11px]">{bill.paymentStatus}</Badge></span></div>
                   <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Paid at</span><span className="font-medium">{bill.paidAt? new Date(bill.paidAt).toLocaleString():"—"}</span></div>
                 </div>
@@ -743,7 +744,7 @@ export default function POSPage() {
                     <div className="font-black text-zinc-900 dark:text-zinc-100">â­ Rate & Get Reward</div>
                     <div className="text-zinc-600 dark:text-zinc-400">Scan to review — 4â˜…=40% off, 5â˜…=50% off</div>
                     <div className="font-mono text-[10px] break-all text-zinc-500 dark:text-zinc-400">{bill.qrToken}</div>
-                    <div className="text-zinc-400 text-[11px]">One reward per bill â€¢ 30 days valid</div>
+                    <div className="text-zinc-400 text-[11px]">One reward per bill • 30 days valid</div>
                   </div>
                 </div>
                 <div className="flex gap-2 print:hidden">
@@ -757,7 +758,7 @@ export default function POSPage() {
                   }}>Share Receipt</Button>
                   <Button variant="outline" className="flex-1 h-9 font-semibold rounded-xl dark:border-zinc-700" onClick={async()=>{ const b=bill; const blob=new Blob([`BILL ${b.billNumber}\nOrder ${order?.orderNumber}\nTotal ${b.totalAmount}\n`],{type:"text/plain"}); const url=URL.createObjectURL(blob); const a=document.createElement("a");a.href=url;a.download=`${b.billNumber}.txt`;a.click(); URL.revokeObjectURL(url); }}>Download</Button>
                 </div>
-                <div className="text-[10px] text-center text-zinc-400 dark:text-zinc-500 font-medium">Powered by RestroERP â€¢ GST inclusive â€¢ Visit again!</div>
+                <div className="text-[10px] text-center text-zinc-400 dark:text-zinc-500 font-medium">Powered by RestroERP • GST inclusive • Visit again!</div>
               </CardContent>
             </Card>
           )}

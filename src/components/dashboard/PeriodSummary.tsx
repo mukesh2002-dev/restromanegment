@@ -12,9 +12,9 @@ type Summary = {
   source: string;
 };
 
-function methodIcon(m: string) {
-  const map: Record<string, string> = { CASH: "💵", UPI: "📱", CARD: "💳", ONLINE: "🟦", WALLET: "👛" };
-  return map[m] || "💰";
+function methodLabel(m: string) {
+  const map: Record<string, string> = { CASH: "नकद", UPI: "UPI", CARD: "कार्ड", ONLINE: "Online", WALLET: "Wallet" };
+  return map[m] || m;
 }
 
 export function PeriodSummary() {
@@ -40,10 +40,10 @@ export function PeriodSummary() {
   if (!data) return null;
 
   const cards = [
-    { label: "Aaj (Today)", icon: "📅", p: data.today, desc: "Aaj total orders", color: "border-green-200 bg-green-50/50", href: "/reports/payments" },
-    { label: "Is Week", icon: "🗓️", p: data.week, desc: "Mon se aaj tak", color: "border-blue-200 bg-blue-50/50", href: "/reports/payments" },
-    { label: "Is Month", icon: "📆", p: data.month, desc: "1st se aaj tak", color: "border-orange-200 bg-orange-50/50", href: "/reports/payments" },
-    { label: "Total (All Time)", icon: "📊", p: data.total, desc: "Total payment history", color: "border-zinc-200 bg-zinc-50", href: "/reports/payments" },
+    { label: "Aaj (Today)", icon: "आज", p: data.today, desc: "Aaj total orders", color: "border-green-200 bg-green-50/50", href: "/reports/payments" },
+    { label: "Is Week", icon: "सप्ताह", p: data.week, desc: "Mon se aaj tak", color: "border-blue-200 bg-blue-50/50", href: "/reports/payments" },
+    { label: "Is Month", icon: "माह", p: data.month, desc: "1st se aaj tak", color: "border-orange-200 bg-orange-50/50", href: "/reports/payments" },
+    { label: "Total (All Time)", icon: "कुल", p: data.total, desc: "Total payment history", color: "border-zinc-200 bg-zinc-50", href: "/reports/payments" },
   ];
 
   return (
@@ -77,7 +77,7 @@ export function PeriodSummary() {
           <CardContent className="grid gap-2 md:grid-cols-5 text-xs">
             {data.byMethod.map(m => (
               <div key={m.method} className="border rounded p-2 flex justify-between md:flex-col bg-white dark:bg-zinc-900">
-                <span className="flex items-center gap-1 font-medium">{methodIcon(m.method)} {m.method} <Badge className="ml-1 text-[10px] border bg-zinc-50">{m.count}</Badge></span>
+                <span className="flex items-center gap-1 font-medium">{methodLabel(m.method)} <Badge className="ml-1 text-[10px] border bg-zinc-50">{m.count}</Badge></span>
                 <span className="font-bold">₹{m.amount.toLocaleString("en-IN")}</span>
               </div>
             ))}

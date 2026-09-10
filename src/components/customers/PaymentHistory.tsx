@@ -32,9 +32,9 @@ type Summary = {
   lastPaymentAt?: string | null;
 };
 
-function methodIcon(m: string) {
-  const map: Record<string, string> = { CASH: "💵", UPI: "📱", CARD: "💳", ONLINE: "🟦", WALLET: "👛", SPLIT: "🔀" };
-  return map[m] || "💰";
+function methodLabel(m: string) {
+  const map: Record<string, string> = { CASH: "नकद (Cash)", UPI: "UPI", CARD: "कार्ड (Card)", ONLINE: "Online", WALLET: "Wallet", SPLIT: "Split" };
+  return map[m] || m;
 }
 function statusBadge(s: string) {
   const cls: Record<string, string> = {
@@ -200,7 +200,7 @@ export function PaymentHistory({ customerId, customerName, customerPhone }: { cu
                           <td className="p-2 font-mono text-xs">{r.orderNumber}</td>
                           <td className="p-2 font-mono text-xs">{r.billNumber}<div className="text-[11px] text-zinc-500">{r.id.slice(0, 8)}</div></td>
                           <td className="p-2 text-right font-bold">₹{r.totalAmount.toLocaleString("en-IN")}</td>
-                          <td className="p-2"><span className="flex items-center gap-1 text-xs">{methodIcon(methodLabel)} {methodLabel} {r.payments[0]?.reference ? <span className="text-[10px] text-zinc-500 truncate max-w-[80px]">{r.payments[0].reference.slice(0, 12)}</span> : null}</span></td>
+                          <td className="p-2"><span className="flex items-center gap-1 text-xs font-medium">{methodLabel} {r.payments[0]?.reference ? <span className="text-[10px] text-zinc-500 truncate max-w-[80px] font-normal">{r.payments[0].reference.slice(0, 12)}</span> : null}</span></td>
                           <td className="p-2"><Badge className={`border text-[11px] ${statusBadge(r.paymentStatus)}`}>{r.paymentStatus}</Badge></td>
                           <td className="p-2 text-center"><Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDetail(r)}>View</Button></td>
                         </tr>
@@ -219,7 +219,7 @@ export function PaymentHistory({ customerId, customerName, customerPhone }: { cu
                     </div>
                     <div className="text-xs text-zinc-500">{new Date(r.paidAt || r.createdAt).toLocaleString("en-IN")} • {r.billNumber}</div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs flex items-center gap-1">{methodIcon(r.isSplit ? "SPLIT" : r.payments[0]?.method || "")} {r.isSplit ? "Split Payment" : r.payments[0]?.method} {r.payments.length > 1 ? `(${r.payments.length} parts)` : ""}</span>
+                      <span className="text-xs flex items-center gap-1 font-medium">{r.isSplit ? "Split Payment" : methodLabel(r.payments[0]?.method || "")} {r.payments.length > 1 ? `(${r.payments.length} parts)` : ""}</span>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDetail(r)}>View</Button>
                     </div>
                   </div>
@@ -268,7 +268,7 @@ export function PaymentHistory({ customerId, customerName, customerPhone }: { cu
                 <div className="font-medium text-xs">Payment Method{detail.payments.length > 1 ? "s (Split)" : ""}</div>
                 {detail.payments.map((p, i) => (
                   <div key={i} className="flex justify-between items-center border rounded p-2 bg-zinc-50 dark:bg-zinc-800">
-                    <span className="flex items-center gap-2 text-xs">{methodIcon(p.method)} {p.method} {p.reference ? <span className="font-mono text-[11px] text-zinc-500">{p.reference.slice(0, 16)}</span> : null}</span>
+                    <span className="flex items-center gap-2 text-xs font-medium">{methodLabel(p.method)} {p.reference ? <span className="font-mono text-[11px] text-zinc-500 font-normal">{p.reference.slice(0, 16)}</span> : null}</span>
                     <span className="font-bold">₹{p.amount.toLocaleString("en-IN")}</span>
                   </div>
                 ))}
