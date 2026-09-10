@@ -123,7 +123,7 @@ export default function MenuPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Menu Management</h1>
-          <p className="text-sm text-zinc-500">Petpooja â€¢ Toast inspired — images, units & inline editing. Roti/Naan = PCS, Sabzi/Thali = Plate</p>
+          <p className="text-sm text-zinc-500">Petpooja • Toast inspired — images, units & inline editing. Roti/Naan = PCS, Sabzi/Thali = Plate</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={()=> setShowCatForm(v=>!v)}>+ Category</Button>
@@ -175,7 +175,7 @@ export default function MenuPage() {
         <Button variant={filterCat===""?"default":"outline"} size="sm" onClick={()=> setFilterCat("")} className={filterCat===""?"bg-zinc-900":""}>All <span className="ml-1 opacity-70">({items.length})</span></Button>
         {cats.map(c=> <Button key={c.id} variant={filterCat===c.id?"default":"outline"} size="sm" onClick={()=> setFilterCat(c.id)} className={filterCat===c.id?"bg-orange-600 hover:bg-orange-700":""}>{c.name} {c._count?`(${c._count.items})`:""}</Button>)}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-zinc-500 hidden md:inline">Optimized â€¢ 80 items â€¢ Petpooja style</span>
+          <span className="text-xs text-zinc-500 hidden md:inline">Optimized • 80 items • Petpooja style</span>
           <Input placeholder="Search Paneer, Biryani, Roti..." value={search} onChange={e=>setSearch(e.target.value)} className="max-w-[220px] h-8" />
         </div>
       </div>
@@ -184,8 +184,8 @@ export default function MenuPage() {
       <div className="grid gap-3 md:grid-cols-4">
         {cats.slice(0,8).map(c=>(
           <Card key={c.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2"><CardTitle className="text-sm">{c.name}</CardTitle><CardDescription className="text-[11px] break-all">/{c.slug} â€¢ order {c.sortOrder}</CardDescription></CardHeader>
-            <CardContent className="text-xs text-zinc-500">{items.filter(m=>m.categoryId===c.id).length || c._count?.items || 0} items â€¢ {c.isActive===false?"Inactive":"Active"}</CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">{c.name}</CardTitle><CardDescription className="text-[11px] break-all">/{c.slug} • order {c.sortOrder}</CardDescription></CardHeader>
+            <CardContent className="text-xs text-zinc-500">{items.filter(m=>m.categoryId===c.id).length || c._count?.items || 0} items • {c.isActive===false?"Inactive":"Active"}</CardContent>
           </Card>
         ))}
       </div>
@@ -221,7 +221,7 @@ export default function MenuPage() {
                 <div className="flex items-end justify-between pt-1 border-t">
                   <div>
                     <div className="font-bold text-sm">₹{m.price} <span className="font-normal text-xs text-zinc-500">/ {UNIT_LABEL[m.servingUnit || "PLATE"]}</span></div>
-                    <div className="text-[11px] text-zinc-400">+{m.taxPercent}% tax â€¢ {m.prepTimeMin||15} min â€¢ {m.sku || "no SKU"}</div>
+                    <div className="text-[11px] text-zinc-400">+{m.taxPercent}% tax • {m.prepTimeMin||15} min • {m.sku || "no SKU"}</div>
                   </div>
                   <button
                     onClick={()=> toggleItemAvailable(m)}
@@ -231,8 +231,8 @@ export default function MenuPage() {
                     {busyId===m.id ? "..." : m.isAvailable? "Available" : "Mark available"}
                   </button>
                 </div>
-                {Boolean(m.variants?.length) && <div className="text-[11px] text-zinc-500 truncate">Variants: {m.variants!.map(v=> `${v.name} (+₹${v.priceDelta})`).join(" â€¢ ")}</div>}
-                {Boolean(m.addOns?.length) && <div className="text-[11px] text-zinc-500 truncate">Add-ons: {m.addOns!.map(a=> `${a.name} (+₹${a.price})`).join(" â€¢ ")}</div>}
+                {Boolean(m.variants?.length) && <div className="text-[11px] text-zinc-500 truncate">Variants: {m.variants!.map(v=> `${v.name} (+₹${v.priceDelta})`).join(" • ")}</div>}
+                {Boolean(m.addOns?.length) && <div className="text-[11px] text-zinc-500 truncate">Add-ons: {m.addOns!.map(a=> `${a.name} (+₹${a.price})`).join(" • ")}</div>}
                 <div className="flex gap-2 pt-1">
                   <button onClick={()=> openEdit(m)} className="flex-1 text-xs py-1.5 rounded border hover:bg-zinc-50 font-medium">Edit</button>
                   <button onClick={()=> deleteItem(m)} className="text-xs px-3 py-1.5 rounded border hover:bg-red-50 text-red-600 font-medium">Delete</button>
@@ -244,7 +244,7 @@ export default function MenuPage() {
       )}
       <div className="text-xs text-zinc-500 flex flex-wrap gap-2 items-center justify-between">
         <span>Showing {items.length} items — <b>PCS</b> for Roti/Naan/Paratha/Kulcha/Dosa/Samosa, <b>Plate</b> for Sabzi/Dal/Biryani/Noodles, <b>Bowl</b> for Sweets, <b>Glass</b> for Beverages. Reference: Petpooja / Toast POS.</span>
-        <span className="text-[11px] bg-zinc-900 text-white px-2 py-1 rounded">Optimized â€¢ Lazy images â€¢ Edit-in-place</span>
+        <span className="text-[11px] bg-zinc-900 text-white px-2 py-1 rounded">Optimized • Lazy images • Edit-in-place</span>
       </div>
     </div>
   );

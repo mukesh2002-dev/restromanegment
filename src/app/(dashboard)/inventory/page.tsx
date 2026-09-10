@@ -92,7 +92,7 @@ export default function InventoryPage(){
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Inventory & Purchasing</h1>
-        <Badge className="bg-zinc-900 text-white">500 items â€¢ service separate for POS recipes</Badge>
+        <Badge className="bg-zinc-900 text-white">500 items • service separate for POS recipes</Badge>
       </div>
       {msg && <div className="text-sm bg-amber-50 border border-amber-200 rounded p-2">{msg}</div>}
 
@@ -116,7 +116,7 @@ export default function InventoryPage(){
             <Button size="sm" onClick={()=> setShowItemForm(v=>!v)}>{showItemForm?"Close":"+ New Item"}</Button>
             <span className="text-xs text-zinc-500 ml-auto">{items.length} shown</span>
           </div>
-          {showItemForm && <Card><CardHeader><CardTitle className="text-base">New Inventory Item</CardTitle><CardDescription>SKU auto if empty â€¢ batch/expiry optional â€¢ supplier link</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">
+          {showItemForm && <Card><CardHeader><CardTitle className="text-base">New Inventory Item</CardTitle><CardDescription>SKU auto if empty • batch/expiry optional • supplier link</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">
             <div><Label>Name*</Label><Input value={itemForm.name||""} onChange={e=>setItemForm({...itemForm, name:e.target.value})} /></div>
             <div><Label>Category*</Label><select value={itemForm.category as string} onChange={e=>setItemForm({...itemForm, category:e.target.value as InvItem["category"]})} className="w-full border rounded h-9 px-3 text-sm">{categories.filter(c=>c!=="ALL").map(c=> <option key={c} value={c}>{c}</option>)}</select></div>
             <div><Label>Unit*</Label><select value={itemForm.unit as string} onChange={e=>setItemForm({...itemForm, unit:e.target.value as InvItem["unit"]})} className="w-full border rounded h-9 px-3 text-sm">{units.map(u=> <option key={u} value={u}>{u}</option>)}</select></div>
@@ -135,7 +135,7 @@ export default function InventoryPage(){
               <tbody>
                 {items.slice(0,100).map(it=>(
                   <tr key={it.id} className={`border-t ${it.currentStock===0? "bg-red-50": it.currentStock < it.reorderLevel? "bg-amber-50": it.expiryDate && new Date(it.expiryDate).getTime() < Date.now()+14*86400000? "bg-amber-50/60":""}`}>
-                    <td className="p-2 font-mono text-xs">{it.sku}</td><td className="p-2">{it.name}<div className="text-xs text-zinc-500">{it.batchNumber||"—"} â€¢ {it.unit}</div></td><td className="p-2 text-xs">{it.category}</td><td className="p-2 text-center"><Badge className={it.currentStock===0? "bg-red-600 text-white": it.currentStock < it.reorderLevel? "bg-amber-500 text-white":""}>{it.currentStock} {it.unit}</Badge></td><td className="p-2 text-center">{it.reorderLevel}</td><td className="p-2">₹{it.costPerUnit}</td><td className="p-2 text-xs">{it.supplier?.name || "—"}</td><td className="p-2 text-xs">{it.expiryDate? new Date(it.expiryDate).toLocaleDateString(): "—"}</td>
+                    <td className="p-2 font-mono text-xs">{it.sku}</td><td className="p-2">{it.name}<div className="text-xs text-zinc-500">{it.batchNumber||"—"} • {it.unit}</div></td><td className="p-2 text-xs">{it.category}</td><td className="p-2 text-center"><Badge className={it.currentStock===0? "bg-red-600 text-white": it.currentStock < it.reorderLevel? "bg-amber-500 text-white":""}>{it.currentStock} {it.unit}</Badge></td><td className="p-2 text-center">{it.reorderLevel}</td><td className="p-2">₹{it.costPerUnit}</td><td className="p-2 text-xs">{it.supplier?.name || "—"}</td><td className="p-2 text-xs">{it.expiryDate? new Date(it.expiryDate).toLocaleDateString(): "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -179,7 +179,7 @@ export default function InventoryPage(){
           </CardContent></Card>}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {suppliers.map(s=>(
-              <Card key={s.id}><CardHeader className="pb-2"><CardTitle className="text-base">{s.name}</CardTitle><CardDescription>{s.contactName||"—"} â€¢ {s.phone||"—"} â€¢ {s.email||"—"}</CardDescription></CardHeader><CardContent className="text-xs text-zinc-500">{s.address||"—"} â€¢ GST {s.gstin||"—"}</CardContent></Card>
+              <Card key={s.id}><CardHeader className="pb-2"><CardTitle className="text-base">{s.name}</CardTitle><CardDescription>{s.contactName||"—"} • {s.phone||"—"} • {s.email||"—"}</CardDescription></CardHeader><CardContent className="text-xs text-zinc-500">{s.address||"—"} • GST {s.gstin||"—"}</CardContent></Card>
             ))}
           </div>
         </div>

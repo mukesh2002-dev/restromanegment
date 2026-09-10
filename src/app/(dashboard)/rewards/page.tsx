@@ -67,7 +67,7 @@ export default function RewardsPage(){
   async function redeem(){
     const res=await fetch("/api/coupons/redeem",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ code: redeemCode, orderTotal: redeemTotal })});
     const j=await res.json();
-    if(res.ok) setRedeemRes(`Success! Discount ₹${j.discount} â€¢ Coupon ${j.coupon.code}`);
+    if(res.ok) setRedeemRes(`Success! Discount ₹${j.discount} • Coupon ${j.coupon.code}`);
     else setRedeemRes(`Error ${j.code||""}: ${j.error}`);
     load();
   }
@@ -93,14 +93,14 @@ export default function RewardsPage(){
         <div className="space-y-4">
           <Card><CardHeader><CardTitle className="text-base">Critical Business Rule</CardTitle><CardDescription>Reward must be linked to unique successfully paid bill. One paid bill = one reward. DB unique(reward.billId) + transactional ALREADY_CLAIMED prevents 4 scans â†’ only first succeeds. Campaigns configurable — 4â˜…=40% 5â˜…=50% example not hardcoded.</CardDescription></CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3 text-sm">
-              <div className="border rounded p-3"><div className="font-bold">Campaigns {campaigns.length}</div><div className="text-xs text-zinc-500">{campaigns.map(c=> `${c.minRating}â˜…â†’${c.rewardValue}${c.rewardType==="PERCENTAGE"?"%":""}`).join(" â€¢ ")}</div></div>
-              <div className="border rounded p-3"><div className="font-bold">Coupons {coupons.length}</div><div className="text-xs text-zinc-500">{coupons.filter(c=>c.status==="ACTIVE").length} active â€¢ {coupons.filter(c=>c.status==="REDEEMED").length} redeemed</div></div>
+              <div className="border rounded p-3"><div className="font-bold">Campaigns {campaigns.length}</div><div className="text-xs text-zinc-500">{campaigns.map(c=> `${c.minRating}â˜…â†’${c.rewardValue}${c.rewardType==="PERCENTAGE"?"%":""}`).join(" • ")}</div></div>
+              <div className="border rounded p-3"><div className="font-bold">Coupons {coupons.length}</div><div className="text-xs text-zinc-500">{coupons.filter(c=>c.status==="ACTIVE").length} active • {coupons.filter(c=>c.status==="REDEEMED").length} redeemed</div></div>
               <div className="border rounded p-3"><div className="font-bold">Loyalty Tx {loyalty.length || "—"}</div><div className="text-xs text-zinc-500">Earn/Redeem/Adjustment/Expiry with linked bill + reason</div></div>
             </CardContent>
           </Card>
           <div className="grid gap-4 md:grid-cols-2">
-            <Card><CardHeader><CardTitle className="text-base">Recent Coupons</CardTitle></CardHeader><CardContent className="space-y-1 text-sm">{coupons.slice(0,6).map(c=> <div key={c.id} className="flex justify-between border-b py-1"><span className="font-mono text-xs">{c.code}</span><span className="text-xs">{c.rewardType} {c.value}{c.rewardType==="PERCENTAGE"?"%":""} â€¢ <Badge className={c.status==="ACTIVE"?"bg-green-100 text-green-800": c.status==="REDEEMED"?"bg-zinc-900 text-white":"bg-amber-100 text-amber-800"}>{c.status}</Badge></span></div>)}</CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-base">Recent Loyalty</CardTitle></CardHeader><CardContent className="space-y-1 text-sm">{loyalty.slice(0,6).map(l=> <div key={l.id} className="flex justify-between border-b py-1"><span className="text-xs">{l.customerId} â€¢ {l.type}</span><span className={l.points>0?"text-green-600":"text-red-600"}>{l.points>0?`+${l.points}`:l.points} â†’ {l.balanceAfter}</span></div>)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-base">Recent Coupons</CardTitle></CardHeader><CardContent className="space-y-1 text-sm">{coupons.slice(0,6).map(c=> <div key={c.id} className="flex justify-between border-b py-1"><span className="font-mono text-xs">{c.code}</span><span className="text-xs">{c.rewardType} {c.value}{c.rewardType==="PERCENTAGE"?"%":""} • <Badge className={c.status==="ACTIVE"?"bg-green-100 text-green-800": c.status==="REDEEMED"?"bg-zinc-900 text-white":"bg-amber-100 text-amber-800"}>{c.status}</Badge></span></div>)}</CardContent></Card>
+            <Card><CardHeader><CardTitle className="text-base">Recent Loyalty</CardTitle></CardHeader><CardContent className="space-y-1 text-sm">{loyalty.slice(0,6).map(l=> <div key={l.id} className="flex justify-between border-b py-1"><span className="text-xs">{l.customerId} • {l.type}</span><span className={l.points>0?"text-green-600":"text-red-600"}>{l.points>0?`+${l.points}`:l.points} â†’ {l.balanceAfter}</span></div>)}</CardContent></Card>
           </div>
         </div>
       )}
@@ -122,8 +122,8 @@ export default function RewardsPage(){
           <div className="grid gap-3 md:grid-cols-2">
             {campaigns.map(c=>(
               <Card key={c.id} className={!c.isActive?"opacity-60":""}>
-                <CardHeader className="pb-2"><CardTitle className="text-base flex justify-between"><span>{c.name}</span><Badge className={c.isActive?"bg-green-600 text-white":"bg-zinc-200"}>{c.isActive?"Active":"Inactive"}</Badge></CardTitle><CardDescription>{c.minRating}â˜…+ â†’ {c.rewardType} {c.rewardValue}{c.rewardType==="PERCENTAGE"?"%":""} â€¢ {c.couponPrefix}-XXXX â€¢ {c.couponExpiryDays}d â€¢ minSpend ₹{c.minSpend}</CardDescription></CardHeader>
-                <CardContent className="flex gap-2"><Button size="sm" variant="outline" onClick={()=> toggleCamp(c)}>{c.isActive?"Deactivate":"Activate"}</Button><span className="text-xs text-zinc-500 self-center">/{c.slug} â€¢ {c.validFrom? new Date(c.validFrom).toLocaleDateString():""} â†’ {c.validTo? new Date(c.validTo).toLocaleDateString():"âˆž"}</span></CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-base flex justify-between"><span>{c.name}</span><Badge className={c.isActive?"bg-green-600 text-white":"bg-zinc-200"}>{c.isActive?"Active":"Inactive"}</Badge></CardTitle><CardDescription>{c.minRating}â˜…+ â†’ {c.rewardType} {c.rewardValue}{c.rewardType==="PERCENTAGE"?"%":""} • {c.couponPrefix}-XXXX • {c.couponExpiryDays}d • minSpend ₹{c.minSpend}</CardDescription></CardHeader>
+                <CardContent className="flex gap-2"><Button size="sm" variant="outline" onClick={()=> toggleCamp(c)}>{c.isActive?"Deactivate":"Activate"}</Button><span className="text-xs text-zinc-500 self-center">/{c.slug} • {c.validFrom? new Date(c.validFrom).toLocaleDateString():""} â†’ {c.validTo? new Date(c.validTo).toLocaleDateString():"âˆž"}</span></CardContent>
               </Card>
             ))}
           </div>
@@ -132,7 +132,7 @@ export default function RewardsPage(){
 
       {tab==="coupons" && (
         <div className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-base">Redeem Coupon — server validates</CardTitle><CardDescription>Checks: exists â€¢ active â€¢ not expired â€¢ unused â€¢ minSpend â€¢ campaign â€¢ order eligibility â€¢ redeem once</CardDescription></CardHeader>
+          <Card><CardHeader><CardTitle className="text-base">Redeem Coupon — server validates</CardTitle><CardDescription>Checks: exists • active • not expired • unused • minSpend • campaign • order eligibility • redeem once</CardDescription></CardHeader>
             <CardContent className="flex flex-wrap gap-2 items-end">
               <div><Label>Code</Label><Input value={redeemCode} onChange={e=>setRedeemCode(e.target.value)} placeholder="SPICE1000" /></div>
               <div><Label>Order Total ₹</Label><Input type="number" value={redeemTotal} onChange={e=>setRedeemTotal(Number(e.target.value))} /></div>
@@ -155,7 +155,7 @@ export default function RewardsPage(){
 
       {tab==="loyalty" && (
         <div className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-base">Loyalty — Points Ledger</CardTitle><CardDescription>Track customer â€¢ balance â€¢ earn/redeem/adjustment/expiry â€¢ reason â€¢ linked bill</CardDescription></CardHeader>
+          <Card><CardHeader><CardTitle className="text-base">Loyalty — Points Ledger</CardTitle><CardDescription>Track customer • balance • earn/redeem/adjustment/expiry • reason • linked bill</CardDescription></CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-4 items-end">
               <div><Label>Customer ID</Label><Input value={loyaltyForm.customerId} onChange={e=>setLoyaltyForm({...loyaltyForm, customerId:e.target.value})} /></div>
               <div><Label>Type</Label><select value={loyaltyForm.type} onChange={e=>setLoyaltyForm({...loyaltyForm, type:e.target.value as LoyaltyTx["type"]})} className="w-full border rounded h-9 px-3 text-sm"><option>EARN</option><option>REDEEM</option><option>ADJUSTMENT</option><option>EXPIRY</option></select></div>

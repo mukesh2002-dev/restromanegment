@@ -122,19 +122,19 @@ export default function KOTPage(){
         : kots.length===0? <Card className="col-span-full"><CardContent className="p-8 text-center text-sm text-zinc-500">No KOTs for this filter — place an order via POS to generate a KOT (item routing to kitchen).</CardContent></Card> :
           kots.map(k=>{
             const mins=elapsedMin(k.createdAt);
-            const delay= mins>30?"ðŸ”´ >30m delayed": mins>15?"ðŸŸ¡ >15m": mins>8?"â€¢":"";
+            const delay= mins>30?"ðŸ”´ >30m delayed": mins>15?"ðŸŸ¡ >15m": mins>8?"•":"";
             return (
               <Card key={k.id} className={`${delayClass(k)} ${k.priority===2?"ring-2 ring-red-300":""} flex flex-col`}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <CardTitle className="text-sm font-mono">{k.kotNumber}</CardTitle>
-                      <CardDescription className="text-xs">{k.orderNumber} â€¢ Table {k.table} â€¢ {k.customer} <span className="text-zinc-400">{k.customerPhone}</span></CardDescription>
+                      <CardDescription className="text-xs">{k.orderNumber} • Table {k.table} • {k.customer} <span className="text-zinc-400">{k.customerPhone}</span></CardDescription>
                     </div>
                     <Badge className={`border ${statusColors[k.status]||"bg-zinc-100"}`}>{k.status}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center text-xs text-zinc-500">
-                    <span>{new Date(k.createdAt).toLocaleTimeString()} â€¢ {mins}m ago {delay}</span>
+                    <span>{new Date(k.createdAt).toLocaleTimeString()} • {mins}m ago {delay}</span>
                     {k.priority===2? <Badge className="bg-red-600 text-white">URGENT</Badge> : k.priority===1? <Badge className="bg-amber-500 text-white">High</Badge> : <Badge className="border bg-white">Normal</Badge>}
                   </div>
                   {k.notes && <div className="text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1">Note: {k.notes}</div>}
@@ -173,13 +173,13 @@ export default function KOTPage(){
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 print:hidden" onClick={()=> setSelected(null)}>
           <Card className="w-full max-w-lg max-h-[90vh] overflow-auto" onClick={e=>e.stopPropagation()}>
-            <CardHeader><CardTitle>Print-ready KOT â€¢ {selected.kotNumber}</CardTitle><CardDescription>{selected.orderNumber} â€¢ {selected.table} â€¢ {selected.customer} â€¢ {new Date(selected.createdAt).toLocaleString()}</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Print-ready KOT • {selected.kotNumber}</CardTitle><CardDescription>{selected.orderNumber} • {selected.table} • {selected.customer} • {new Date(selected.createdAt).toLocaleString()}</CardDescription></CardHeader>
             <CardContent className="space-y-3">
               <div id="kot-print" className="space-y-2 font-mono text-sm border rounded p-3 bg-white">
-                <div className="text-center font-bold border-b pb-2">KOT {selected.kotNumber}<br/><span className="font-normal text-xs">Order {selected.orderNumber} â€¢ Table {selected.table}</span></div>
+                <div className="text-center font-bold border-b pb-2">KOT {selected.kotNumber}<br/><span className="font-normal text-xs">Order {selected.orderNumber} • Table {selected.table}</span></div>
                 <div>Customer: {selected.customer} ({selected.customerPhone})</div>
-                <div>Priority: {selected.priority===2?"URGENT": selected.priority===1?"High":"Normal"} â€¢ Status: {selected.status}</div>
-                <div>Time: {new Date(selected.createdAt).toLocaleString()} â€¢ {elapsedMin(selected.createdAt)}m ago</div>
+                <div>Priority: {selected.priority===2?"URGENT": selected.priority===1?"High":"Normal"} • Status: {selected.status}</div>
+                <div>Time: {new Date(selected.createdAt).toLocaleString()} • {elapsedMin(selected.createdAt)}m ago</div>
                 <div className="border-t my-2" />
                 {selected.items.map(it=> <div key={it.id} className="flex justify-between"><span>{it.name} Ã—{it.quantity}{it.notes?` (${it.notes})`:""} {it.status==="CANCELLED"?"[CANCELLED]":""}</span></div>)}
                 <div className="border-t pt-2 text-xs text-center">Kitchen copy — routing: all items to hot section</div>

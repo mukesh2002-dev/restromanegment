@@ -75,17 +75,17 @@ export default function DeliveryPage(){
             <Card key={o.id} className="flex flex-col">
               <CardHeader className="pb-2">
                 <div className="flex justify-between gap-2"><span className="font-mono text-sm font-bold">{o.orderNumber}</span><Badge className={o.status==="DELIVERED"?"bg-green-600 text-white": o.status==="OUT_FOR_DELIVERY"?"bg-blue-600 text-white": o.status==="CANCELLED"?"bg-red-600 text-white":"bg-zinc-100"}>{o.status}</Badge></div>
-                <CardDescription className="text-xs">{o.customerName} â€¢ {o.customerPhone} â€¢ {o.customerEmail||"—"}</CardDescription>
+                <CardDescription className="text-xs">{o.customerName} • {o.customerPhone} • {o.customerEmail||"—"}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 flex-1 flex flex-col text-sm">
-                <div className="text-xs bg-zinc-50 dark:bg-zinc-900 border rounded p-2">{o.address}{o.area?` â€¢ ${o.area}`:""}<div className="text-zinc-500">Instructions: {o.instructions||"—"}</div></div>
+                <div className="text-xs bg-zinc-50 dark:bg-zinc-900 border rounded p-2">{o.address}{o.area?` • ${o.area}`:""}<div className="text-zinc-500">Instructions: {o.instructions||"—"}</div></div>
                 <div className="space-y-1 border rounded p-2 bg-white dark:bg-zinc-900">
                   {o.items?.slice(0,4).map((it,i)=> <div key={i} className="flex justify-between text-xs"><span>{it.name} Ã—{it.quantity}</span><span>₹{it.unitPrice*it.quantity}</span></div>)}
                   {o.items?.length>4 && <div className="text-xs text-zinc-500">+{o.items.length-4} more</div>}
                   <div className="flex justify-between text-xs border-t pt-1"><span>Subtotal ₹{o.subtotal} + Tax ₹{o.taxAmount} + Fee ₹{o.deliveryFee} {o.discountAmount? `- Disc ₹${o.discountAmount} (${o.couponCode})`:""}</span></div>
                   <div className="flex justify-between font-bold"><span>Total</span><span>₹{o.totalAmount}</span></div>
-                  <div className="text-xs text-zinc-500">Payment {o.paymentMethod} ({o.paymentStatus}) â€¢ OTP {o.otp||"—"} â€¢ ETA {o.estimatedDeliveryTime? new Date(o.estimatedDeliveryTime).toLocaleTimeString():"—"}</div>
-                  <div className="text-xs text-zinc-500">{new Date(o.createdAt).toLocaleString()} â€¢ Assigned: {o.assignedTo||"—"}</div>
+                  <div className="text-xs text-zinc-500">Payment {o.paymentMethod} ({o.paymentStatus}) • OTP {o.otp||"—"} • ETA {o.estimatedDeliveryTime? new Date(o.estimatedDeliveryTime).toLocaleTimeString():"—"}</div>
+                  <div className="text-xs text-zinc-500">{new Date(o.createdAt).toLocaleString()} • Assigned: {o.assignedTo||"—"}</div>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-2 mt-auto">
                   {(nextMap[o.status]||[]).map(n=> <Button key={n} size="sm" className="h-7 text-xs" onClick={()=> advance(o,n)}>{n}</Button>)}

@@ -60,7 +60,7 @@ export default function TablesPage() {
 
       <div className="flex gap-2 text-xs">
         {Object.keys(color).map(s=> <span key={s} className={`px-2 py-1 rounded-full border ${color[s]}`}>{s}</span>)}
-        <span className="ml-auto text-zinc-500">{tables.length} tables â€¢ 30 demo</span>
+        <span className="ml-auto text-zinc-500">{tables.length} tables • 30 demo</span>
       </div>
 
       {loading? <div className="text-sm text-zinc-500">Loadingâ€¦</div> : (
@@ -69,7 +69,7 @@ export default function TablesPage() {
             <Card key={t.id} className="relative">
               <CardContent className="p-4 space-y-2 text-center">
                 <div className="font-bold text-lg">{t.number}</div>
-                <div className="text-xs text-zinc-500">{t.floor} â€¢ {t.area || "—"} â€¢ {t.capacity} pax</div>
+                <div className="text-xs text-zinc-500">{t.floor} • {t.area || "—"} • {t.capacity} pax</div>
                 <Badge className={`border ${color[t.status]}`}>{t.status}</Badge>
                 <select value={t.status} onChange={e=> updateStatus(t.id, e.target.value as Table["status"])} className="w-full border rounded h-7 text-xs px-1">
                   <option>AVAILABLE</option><option>OCCUPIED</option><option>RESERVED</option><option>BILLING</option><option>CLEANING</option>
@@ -78,7 +78,7 @@ export default function TablesPage() {
                 <a href={`/qr/${t.qrToken}`} className="text-xs underline">View QR</a>
                 <div className="flex gap-1 justify-center pt-1">
                   <button onClick={()=> navigator.clipboard?.writeText(t.qrToken)} className="text-[11px] underline">Copy token</button>
-                  <span className="text-zinc-300">â€¢</span>
+                  <span className="text-zinc-300">•</span>
                   <button onClick={()=> del(t.id)} className="text-[11px] text-red-600 underline">Delete</button>
                 </div>
               </CardContent>
