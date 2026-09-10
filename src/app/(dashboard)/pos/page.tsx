@@ -228,51 +228,54 @@ export default function POSPage() {
     return list;
   }
 
+  const [lastError, setLastError] = useState<string>("");
   async function createOrderAndBill(overridePayments?: PaymentLine[]){
-    console.log("Pay & Bill clicked", { cartLen: cart.length, orderType, tableId, grandTotal, paidSum, customerMode, customerPhone });
-    if(cart.length===0){ setMsg("Add at least one item"); window.scrollTo({top:0, behavior:"smooth"}); return; }
-    // auto-resolve customer if phone typed but not yet linked (root cause for CRM 0 visits)
+    console.log("Pay & Bill clicked", { cartLen: cart.length, orderType, tableId, grandTotal, paidSum, customerMode, customerPhone, cartSample: cart.slice(0,1) });
+    if(cart.length===0){ const m="Add at least one item — Step 1: select products"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    // auto-resolve customer if phone typed but not yet linked (fixes CRM 0 visits)
+    let resolvedCustomer: CustomerProfile | null = customerProfile;
+    let resolvedMode = customerMode;
     if(customerMode==="none" && customerPhone.trim() && /^[6-9]\d{9}$/.test(customerPhone.trim())){
       try{
         const cr = await fetch(`/api/customers?phone=${encodeURIComponent(customerPhone.trim())}`);
         const cj = await cr.json();
         if(cj.found && cj.customer){
-          setCustomerProfile(cj.customer);
+          resolvedCustomer = cj.customer as CustomerProfile;
+          resolvedMode = "found";
+          setCustomerProfile(resolvedCustomer);
           setCustomerMode("found");
-          // will be used below as found
         } else {
-          // auto-create as walk-in fallback? keep as none but note
-          setMsg("Phone entered but not linked — continue as walk-in or Search first. Linking as walk-in for this bill.");
+          // keep walk-in but don't block
         }
       }catch{}
     }
     let effectiveTableId = tableId;
     if(orderType==="DINE_IN" && !tableId){
       const avail = tables.find(t=> t.status==="AVAILABLE" || t.status==="RESERVED");
-      if(avail){ effectiveTableId = avail.id; setTableId(avail.id); } else { setMsg("Select table for Dine-in (§9) — no available table found"); window.scrollTo({top:0, behavior:"smooth"}); return; }
+      if(avail){ effectiveTableId = avail.id; setTableId(avail.id); } else { const m="Step 1: Select table for Dine-in — no available table"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }
     }
-    if(orderType==="DELIVERY" && !deliveryAddress.trim()){ setMsg("Delivery address required (§9/37)"); window.scrollTo({top:0, behavior:"smooth"}); return; }
-    if(orderType==="DELIVERY" && !customerProfile && customerMode!=="walkin" && customerMode!=="new"){ setMsg("Delivery requires customer name + mobile + address — search or create customer first"); window.scrollTo({top:0, behavior:"smooth"}); return; }
-    let effectiveCustomerId: string | undefined = customerMode==="found" && customerProfile ? customerProfile.id : undefined;
-    // also handle the case where we just resolved phone to found
-    if(!effectiveCustomerId && customerMode==="none" && customerProfile){ effectiveCustomerId = customerProfile.id; }
-    let effectiveCustomerProfile = customerProfile;
-    if(customerMode==="new"){
+    if(orderType==="DELIVERY" && !deliveryAddress.trim()){ const m="Step 3: Delivery address required"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    if(orderType==="DELIVERY" && !resolvedCustomer && resolvedMode!=="walkin" && resolvedMode!=="new"){ const m="Delivery requires customer — Search or Add New Customer first (Step 3)"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }
+    let effectiveCustomerId: string | undefined = resolvedMode==="found" && resolvedCustomer ? resolvedCustomer.id : undefined;
+    let effectiveCustomerProfile = resolvedCustomer;
+    // if we resolved via phone, use that
+    if(!effectiveCustomerId && resolvedCustomer && resolvedMode==="found"){ effectiveCustomerId = resolvedCustomer.id; }
+    if(resolvedMode==="new"){
       if(!newCustomerForm.name.trim() || !/^[6-9]\d{9}$/.test(newCustomerForm.phone)){
-        setMsg("New customer: Name + 10-digit mobile required — complete form then Pay"); window.scrollTo({top:0, behavior:"smooth"}); return;
+        const m="Step 3: New customer — Name + 10-digit mobile required"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return;
       }
       setMsg("Creating new customer for CRM…"); setBusy(true);
       try{
         const cr = await fetch("/api/customers",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ name: newCustomerForm.name.trim(), phone: newCustomerForm.phone.trim(), email: newCustomerForm.email||undefined, birthday: newCustomerForm.birthday||undefined })});
         const cj = await cr.json();
-        if(!cr.ok){ setMsg(cj.error||"Customer create failed — check phone duplicate"); setBusy(false); window.scrollTo({top:0, behavior:"smooth"}); return; }
+        if(!cr.ok){ const m=cj.error||"Customer create failed — check phone duplicate"; setMsg(m); setLastError(m); setBusy(false); window.scrollTo({top:0, behavior:"smooth"}); return; }
         effectiveCustomerId = cj.id;
         effectiveCustomerProfile = { id: cj.id, name: cj.name, phone: cj.phone, email: cj.email, birthday: cj.birthday, totalVisits:0, totalSpend:0, totalOrders:0, loyaltyPoints:0, availableCoupons:[] };
         setCustomerProfile(effectiveCustomerProfile);
         setCustomerMode("found");
         setCustomerPhone(cj.phone);
         setCustomerMsg(`New customer created: ${cj.name} — saved to CRM`);
-      }catch{ setMsg("Customer create network error"); setBusy(false); return; }
+      }catch{ const m="Customer create network error"; setMsg(m); setLastError(m); setBusy(false); return; }
       setBusy(false);
     }
     const activePayments = getNormalizedPayments(overridePayments);
@@ -280,17 +283,21 @@ export default function POSPage() {
     if(Math.abs(paid - grandTotal) > 0.01 && paid < grandTotal){ setMsg(`Payments ₹${paid} < total ₹${grandTotal} — auto-syncing to total`); // auto-fix instead of blocking
       activePayments[0].amount = grandTotal;
     }
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(""); setLastError("");
     try {
       const customerId = effectiveCustomerId;
-      const oRes = await fetch("/api/orders",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ tableId: effectiveTableId||undefined, customerId, type: orderType, items: cart.map(c=> ({ menuItemId:c.menuItemId, quantity:c.quantity, notes:c.notes, variantId:c.variantId, addOnIds:c.addOnIds })), discountAmount: discount, notes: notes + (orderType==="DELIVERY"? ` | Address: ${deliveryAddress}`:"") + (customerMode==="walkin"?" | WALKIN":"") })});
-      const oJson = await oRes.json();
-      if(!oRes.ok){ setMsg(oJson.error||oJson.message||"Order failed"); setBusy(false); return; }
+      const orderPayload = { tableId: effectiveTableId||undefined, customerId, type: orderType, items: cart.map(c=> ({ menuItemId:c.menuItemId, quantity:c.quantity, notes:c.notes, variantId:c.variantId, addOnIds:c.addOnIds })), discountAmount: discount, notes: notes + (orderType==="DELIVERY"? ` | Address: ${deliveryAddress}`:"") + (resolvedMode==="walkin"?" | WALKIN":"") };
+      console.log("Creating order", orderPayload);
+      const oRes = await fetch("/api/orders",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(orderPayload)});
+      const oJson = await oRes.json().catch(()=>({}));
+      if(!oRes.ok){ const m=`Order failed: ${oJson.error||oJson.message||oRes.statusText} (${oRes.status})`; setMsg(m); setLastError(m); console.error("Order API error", oJson); setBusy(false); return; }
       const orderId = oJson.id;
       setOrder({ id: orderId, orderNumber: oJson.orderNumber, totalAmount: oJson.totalAmount });
-      const bRes = await fetch("/api/bills",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ orderId, discountAmount: discount, couponCode: couponCode||undefined, loyaltyPointsToRedeem: loyaltyRedeem||undefined, payments: activePayments.map(p=> ({ method:p.method, amount: Number(p.amount), reference:p.reference })) })});
-      const bJson = await bRes.json();
-      if(!bRes.ok){ setMsg(bJson.error||bJson.message||"Bill failed — check payments sum vs total"); setBusy(false); return; }
+      const billPayload = { orderId, discountAmount: discount, couponCode: couponCode||undefined, loyaltyPointsToRedeem: loyaltyRedeem||undefined, payments: activePayments.map(p=> ({ method:p.method, amount: Number(p.amount), reference:p.reference })) };
+      console.log("Creating bill", billPayload);
+      const bRes = await fetch("/api/bills",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(billPayload)});
+      const bJson = await bRes.json().catch(()=>({}));
+      if(!bRes.ok){ const m=`Bill failed: ${bJson.error||bJson.message||bRes.statusText} (${bRes.status})${bJson.code?` [${bJson.code}]`:""}`; setMsg(m); setLastError(m); console.error("Bill API error", bJson); setBusy(false); return; }
       setBill(bJson);
       setPayments(activePayments);
       const earn = (bJson as unknown as {loyaltyEarned?:number}).loyaltyEarned || 0;
@@ -298,21 +305,21 @@ export default function POSPage() {
       if(earn) setMsg(`✅ Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • +${earn} pts (bal ${bal}) • QR ready — saved to CRM`);
       else setMsg(`✅ Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • QR ready — saved to CRM ${bJson.totalAmount <100 ? "(₹100+ to earn)" : ""}`);
       setTimeout(()=> document.getElementById("bill-success")?.scrollIntoView({behavior:"smooth", block:"start"}), 150);
-      // persist for CRM refresh - ensures Customers/CRM shows updated visits/spend even after navigation/refresh
+      // persist for CRM refresh
       try{
         localStorage.setItem("crm_last_bill", JSON.stringify({ billNumber: bJson.billNumber, customerId: bJson.customerId || effectiveCustomerId || "", at: new Date().toISOString() }));
         localStorage.setItem("crm_refresh_needed", "1");
       }catch{}
-      const phoneToRefresh = (effectiveCustomerProfile as unknown as {phone?:string})?.phone || customerProfile?.phone || newCustomerForm.phone || customerPhone;
+      const phoneToRefresh = (effectiveCustomerProfile as unknown as {phone?:string})?.phone || resolvedCustomer?.phone || newCustomerForm.phone || customerPhone;
       if(phoneToRefresh){
         fetch(`/api/customers?phone=${encodeURIComponent(phoneToRefresh)}`).then(r=>r.json()).then(j=>{ if(j.found && j.customer) setCustomerProfile(j.customer); }).catch(()=>null);
       }
       if(orderType==="DINE_IN" && tableId) {
         fetch("/api/tables").then(r=>r.json()).then(j=> Array.isArray(j)? setTables(j):null).catch(()=>null);
       }
-      // keep success visible - do NOT clear cart immediately, let staff print first
-      // cart will be cleared via Clear Cart or New Bill button
-    } catch (e: unknown){ setMsg(e instanceof Error? e.message:"Network error"); }
+      // haptic feedback
+      try{ if(navigator.vibrate) navigator.vibrate(120); }catch{}
+    } catch (e: unknown){ const m=e instanceof Error? e.message:"Network error"; setMsg(m); setLastError(m); console.error(e); }
     setBusy(false);
   }
 
@@ -410,7 +417,13 @@ export default function POSPage() {
             </div>
           ))}
         </div>
-        {msg && <div className={`text-sm rounded-lg px-3 py-2.5 whitespace-pre-wrap border font-medium ${msg.startsWith("✅")?"bg-green-50 border-green-200 text-green-800 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300":"bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-100"}`}>{msg}</div>}
+        {(msg || lastError) && (
+          <div className={`text-sm rounded-xl px-3 py-3 whitespace-pre-wrap border font-semibold shadow-sm flex items-start justify-between gap-3 ${msg.startsWith("✅") || lastError==="" ?"bg-green-50 border-green-300 text-green-800 dark:bg-green-950/40 dark:border-green-700 dark:text-green-200":"bg-red-50 border-red-300 text-red-800 dark:bg-red-950/40 dark:border-red-700 dark:text-red-200"}`}>
+            <span className="flex-1">{msg || lastError}</span>
+            <button onClick={()=>{ setMsg(""); setLastError(""); }} className="shrink-0 text-xs underline opacity-70 hover:opacity-100">Dismiss</button>
+          </div>
+        )}
+        {busy && <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2"><span className="h-3 w-3 border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-white rounded-full animate-spin" /> Processing — please wait…</div>}
       </div>
 
       {/* Category + OrderType */}
