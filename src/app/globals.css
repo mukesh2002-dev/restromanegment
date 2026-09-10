@@ -3,12 +3,12 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f0f0f;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #09090b;
+  --foreground: #fafafa;
 }
 
 @theme inline {
@@ -22,20 +22,41 @@
   border-color: var(--color-zinc-200);
 }
 
+.dark * {
+  border-color: var(--color-zinc-800);
+}
+
 html {
   scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Smooth card/button hover */
-button, a, [role="button"] {
+/* Premium typography hierarchy */
+h1, h2, h3 { letter-spacing: -0.02em; }
+
+/* Smooth interactions */
+button, a, [role="button"], input, select, textarea {
   transition: all 0.15s ease;
+}
+
+/* Focus rings - accessible */
+*:focus-visible {
+  outline: 2px solid theme(colors.zinc.900);
+  outline-offset: 2px;
+}
+.dark *:focus-visible {
+  outline-color: theme(colors.zinc.100);
 }
 
 /* Shimmer for skeleton */
@@ -43,3 +64,15 @@ button, a, [role="button"] {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* Print */
+@media print {
+  .print\:hidden { display: none !important; }
+}
+
+/* Scrollbar premium */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: theme(colors.zinc.300); border-radius: 9999px; }
+.dark ::-webkit-scrollbar-thumb { background: theme(colors.zinc.700); }
+::-webkit-scrollbar-thumb:hover { background: theme(colors.zinc.400); }

@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Utensils, Table2, ShoppingCart, Flame, Users, Star, Gift, Package, Truck, MessageCircle, BarChart3, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Utensils, Table2, ShoppingCart, Flame, Users, Star, Gift, Package, Truck, MessageCircle, BarChart3, Settings, LogOut, Menu, X } from "lucide-react";
 import { ThemeToggleCompact } from "@/components/theme-toggle";
 
 const nav = [
@@ -23,33 +24,61 @@ const nav = [
 
 export function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const filtered = nav.filter(n=> n.roles.includes(role));
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800">
-      <div className="px-6 py-5 border-b dark:border-zinc-800">
-        <div className="font-bold text-lg leading-none">Spice Garden</div>
-        <div className="text-xs text-zinc-500">RestroERP • {role}</div>
-      </div>
-      <nav className="flex-1 overflow-auto p-3 space-y-1">
-        {filtered.map(item=>{
-          const active = pathname?.startsWith(item.href);
-          return (
-            <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors", active ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800")}>
-              <item.icon className="h-4 w-4" /> {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="p-3 border-t dark:border-zinc-800 space-y-3">
-        <div className="flex justify-center">
-          <ThemeToggleCompact />
+    <>
+      {/* Mobile toggle */}
+      <button
+        onClick={()=> setMobileOpen(v=>!v)}
+        className="md:hidden fixed top-3 left-3 z-40 inline-flex h-9 w-9 items-center justify-center rounded-md border bg-white shadow-sm dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+        aria-label="Toggle menu"
+      >
+        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
+      {mobileOpen && <div className="md:hidden fixed inset-0 bg-black/40 z-30" onClick={()=> setMobileOpen(false)} />}
+
+      {/* Fixed sidebar - desktop always visible, mobile slide */}
+      <aside className={cn(
+        "flex w-64 shrink-0 flex-col border-r bg-white dark:bg-zinc-950 dark:border-zinc-800 fixed left-0 top-0 h-screen z-30 transition-transform duration-200",
+        "md:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      )}>
+        <div className="px-6 py-5 border-b dark:border-zinc-800 bg-white dark:bg-zinc-950">
+          <div className="font-bold text-lg leading-none tracking-tight text-zinc-900 dark:text-zinc-100">Spice Garden</div>
+          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-1">RestroERP • {role}</div>
         </div>
-        <form action="/api/auth/logout" method="post">
-          <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800">
-            <LogOut className="h-4 w-4" /> Logout
-          </button>
-        </form>
-      </div>
-    </aside>
+        <nav className="flex-1 overflow-auto p-3 space-y-1 bg-white dark:bg-zinc-950">
+          {filtered.map(item=>{
+            const active = pathname?.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={()=> setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all border border-transparent",
+                  active
+                    ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white shadow-sm"
+                    : "text-zinc-700 hover:bg-zinc-100 hover:border-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:border-zinc-800 dark:hover:text-zinc-100"
+                )}
+              >
+                <item.icon className="h-[18px] w-[18px] shrink-0" /> {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-3 border-t dark:border-zinc-800 bg-white dark:bg-zinc-950 space-y-3">
+          <div className="flex justify-center">
+            <ThemeToggleCompact />
+          </div>
+          <form action="/api/auth/logout" method="post">
+            <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 border border-transparent hover:border-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:border-zinc-800 transition-colors">
+              <LogOut className="h-4 w-4" /> Logout
+            </button>
+          </form>
+        </div>
+      </aside>
+    </>
   );
 }

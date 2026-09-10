@@ -44,6 +44,19 @@ export default function CustomersPage(){
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{ load(); },[]);
   useEffect(()=>{ const t=setTimeout(load,400); return ()=>clearTimeout(t); },[q]);
+  // auto-refresh when POS created a bill (fixes stale Visits 0 after order)
+  useEffect(()=>{
+    const check=()=>{
+      try{ if(localStorage.getItem("crm_refresh_needed")==="1"){ localStorage.removeItem("crm_refresh_needed"); load(); } }catch{}
+    };
+    check();
+    window.addEventListener("focus", check);
+    const onStorage=(e: StorageEvent)=>{ if(e.key==="crm_refresh_needed") check(); };
+    window.addEventListener("storage", onStorage);
+    // also poll once after mount for Vercel delayed DB
+    const t=setTimeout(check, 1500);
+    return ()=>{ window.removeEventListener("focus", check); window.removeEventListener("storage", onStorage); clearTimeout(t); };
+  },[]);
 
   async function open(id:string){
     try{ const r=await fetch(`/api/customers/${id}`); const j=await r.json(); setSelected(j); setActiveTab("overview"); } catch{ const c=demoCustomers.find(x=>x.id===id) as unknown as Detail; setSelected(c as Detail); setActiveTab("overview"); }
