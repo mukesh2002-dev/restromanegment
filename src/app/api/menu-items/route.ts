@@ -56,7 +56,7 @@ export async function POST(req: Request) {
   }
   try {
     const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
-    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found â€” please re-login" }, { status:400 });
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
     const created = await prisma.menuItem.create({
       data:{
         restaurantId,

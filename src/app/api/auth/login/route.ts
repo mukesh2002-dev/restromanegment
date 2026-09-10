@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
     if (mapped && password === "password123") {
       const hash = await bcrypt.hash("password123",10);
-      // resolve demo restaurantId to real DB restaurant if available â€” fixes FK after reseed
+      // resolve demo restaurantId to real DB restaurant if available — fixes FK after reseed
       let rid = "rest_1";
       if (dbOk) {
         const real = await prisma.restaurant.findFirst({ select:{ id:true }, orderBy:{ createdAt:"asc" } });

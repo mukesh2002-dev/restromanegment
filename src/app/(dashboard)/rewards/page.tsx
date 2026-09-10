@@ -57,7 +57,7 @@ export default function RewardsPage(){
   async function createCampaign(){
     if(!campForm.name || !campForm.minRating || campForm.rewardValue===undefined){ setMsg("Name, minRating, rewardValue required"); return; }
     const res=await fetch("/api/campaigns",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(campForm)});
-    if(res.ok){ setMsg("Campaign created â€” threshold configurable, not hardcoded"); setShowCampForm(false); setCampForm({ name:"", minRating:4, rewardType:"PERCENTAGE", rewardValue:40, couponPrefix:"SPICE", couponExpiryDays:30, minSpend:0 }); load(); }
+    if(res.ok){ setMsg("Campaign created — threshold configurable, not hardcoded"); setShowCampForm(false); setCampForm({ name:"", minRating:4, rewardType:"PERCENTAGE", rewardValue:40, couponPrefix:"SPICE", couponExpiryDays:30, minSpend:0 }); load(); }
     else { const j=await res.json(); setMsg(j.error||"Failed"); }
   }
   async function toggleCamp(c:Campaign){
@@ -67,14 +67,14 @@ export default function RewardsPage(){
   async function redeem(){
     const res=await fetch("/api/coupons/redeem",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ code: redeemCode, orderTotal: redeemTotal })});
     const j=await res.json();
-    if(res.ok) setRedeemRes(`Success! Discount â‚¹${j.discount} â€¢ Coupon ${j.coupon.code}`);
+    if(res.ok) setRedeemRes(`Success! Discount ₹${j.discount} â€¢ Coupon ${j.coupon.code}`);
     else setRedeemRes(`Error ${j.code||""}: ${j.error}`);
     load();
   }
   async function adjustLoyalty(){
     const res=await fetch("/api/loyalty",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(loyaltyForm)});
     const j=await res.json();
-    if(res.ok){ setMsg(`Loyalty ${loyaltyForm.type} ${loyaltyForm.points} pts â€” new balance ${j.balanceAfter}`); load(); }
+    if(res.ok){ setMsg(`Loyalty ${loyaltyForm.type} ${loyaltyForm.points} pts — new balance ${j.balanceAfter}`); load(); }
     else setMsg(j.error||"Failed");
   }
 
@@ -91,11 +91,11 @@ export default function RewardsPage(){
 
       {tab==="overview" && (
         <div className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-base">Critical Business Rule</CardTitle><CardDescription>Reward must be linked to unique successfully paid bill. One paid bill = one reward. DB unique(reward.billId) + transactional ALREADY_CLAIMED prevents 4 scans â†’ only first succeeds. Campaigns configurable â€” 4â˜…=40% 5â˜…=50% example not hardcoded.</CardDescription></CardHeader>
+          <Card><CardHeader><CardTitle className="text-base">Critical Business Rule</CardTitle><CardDescription>Reward must be linked to unique successfully paid bill. One paid bill = one reward. DB unique(reward.billId) + transactional ALREADY_CLAIMED prevents 4 scans â†’ only first succeeds. Campaigns configurable — 4â˜…=40% 5â˜…=50% example not hardcoded.</CardDescription></CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3 text-sm">
               <div className="border rounded p-3"><div className="font-bold">Campaigns {campaigns.length}</div><div className="text-xs text-zinc-500">{campaigns.map(c=> `${c.minRating}â˜…â†’${c.rewardValue}${c.rewardType==="PERCENTAGE"?"%":""}`).join(" â€¢ ")}</div></div>
               <div className="border rounded p-3"><div className="font-bold">Coupons {coupons.length}</div><div className="text-xs text-zinc-500">{coupons.filter(c=>c.status==="ACTIVE").length} active â€¢ {coupons.filter(c=>c.status==="REDEEMED").length} redeemed</div></div>
-              <div className="border rounded p-3"><div className="font-bold">Loyalty Tx {loyalty.length || "â€”"}</div><div className="text-xs text-zinc-500">Earn/Redeem/Adjustment/Expiry with linked bill + reason</div></div>
+              <div className="border rounded p-3"><div className="font-bold">Loyalty Tx {loyalty.length || "—"}</div><div className="text-xs text-zinc-500">Earn/Redeem/Adjustment/Expiry with linked bill + reason</div></div>
             </CardContent>
           </Card>
           <div className="grid gap-4 md:grid-cols-2">
@@ -107,12 +107,12 @@ export default function RewardsPage(){
 
       {tab==="campaigns" && (
         <div className="space-y-4">
-          <div className="flex justify-between"><h3 className="font-semibold">Campaigns â€” thresholds configurable</h3><Button size="sm" onClick={()=> setShowCampForm(v=>!v)}>{showCampForm?"Close":"+ New Campaign"}</Button></div>
+          <div className="flex justify-between"><h3 className="font-semibold">Campaigns — thresholds configurable</h3><Button size="sm" onClick={()=> setShowCampForm(v=>!v)}>{showCampForm?"Close":"+ New Campaign"}</Button></div>
           {showCampForm && <Card><CardHeader><CardTitle className="text-base">New Campaign (not hardcoded)</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">
             <div><Label>Name*</Label><Input value={campForm.name||""} onChange={e=>setCampForm({...campForm, name:e.target.value})} placeholder="4-Star Reward" /></div>
             <div><Label>Min Rating (1-5)*</Label><Input type="number" value={campForm.minRating??4} onChange={e=>setCampForm({...campForm, minRating: Number(e.target.value)})} /></div>
             <div><Label>Reward Type*</Label><select value={campForm.rewardType as string} onChange={e=>setCampForm({...campForm, rewardType:e.target.value as Campaign["rewardType"]})} className="w-full border rounded h-9 px-3 text-sm"><option>PERCENTAGE</option><option>FIXED</option><option>FREE_ITEM</option><option>LOYALTY_POINTS</option></select></div>
-            <div><Label>Value* {campForm.rewardType==="PERCENTAGE"?"%":"â‚¹/pts"}</Label><Input type="number" value={campForm.rewardValue??0} onChange={e=>setCampForm({...campForm, rewardValue: Number(e.target.value)})} /></div>
+            <div><Label>Value* {campForm.rewardType==="PERCENTAGE"?"%":"₹/pts"}</Label><Input type="number" value={campForm.rewardValue??0} onChange={e=>setCampForm({...campForm, rewardValue: Number(e.target.value)})} /></div>
             <div><Label>Coupon Prefix</Label><Input value={campForm.couponPrefix||""} onChange={e=>setCampForm({...campForm, couponPrefix:e.target.value})} /></div>
             <div><Label>Expiry Days</Label><Input type="number" value={campForm.couponExpiryDays??30} onChange={e=>setCampForm({...campForm, couponExpiryDays: Number(e.target.value)})} /></div>
             <div><Label>Min Spend</Label><Input type="number" value={campForm.minSpend??0} onChange={e=>setCampForm({...campForm, minSpend: Number(e.target.value)})} /></div>
@@ -122,7 +122,7 @@ export default function RewardsPage(){
           <div className="grid gap-3 md:grid-cols-2">
             {campaigns.map(c=>(
               <Card key={c.id} className={!c.isActive?"opacity-60":""}>
-                <CardHeader className="pb-2"><CardTitle className="text-base flex justify-between"><span>{c.name}</span><Badge className={c.isActive?"bg-green-600 text-white":"bg-zinc-200"}>{c.isActive?"Active":"Inactive"}</Badge></CardTitle><CardDescription>{c.minRating}â˜…+ â†’ {c.rewardType} {c.rewardValue}{c.rewardType==="PERCENTAGE"?"%":""} â€¢ {c.couponPrefix}-XXXX â€¢ {c.couponExpiryDays}d â€¢ minSpend â‚¹{c.minSpend}</CardDescription></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-base flex justify-between"><span>{c.name}</span><Badge className={c.isActive?"bg-green-600 text-white":"bg-zinc-200"}>{c.isActive?"Active":"Inactive"}</Badge></CardTitle><CardDescription>{c.minRating}â˜…+ â†’ {c.rewardType} {c.rewardValue}{c.rewardType==="PERCENTAGE"?"%":""} â€¢ {c.couponPrefix}-XXXX â€¢ {c.couponExpiryDays}d â€¢ minSpend ₹{c.minSpend}</CardDescription></CardHeader>
                 <CardContent className="flex gap-2"><Button size="sm" variant="outline" onClick={()=> toggleCamp(c)}>{c.isActive?"Deactivate":"Activate"}</Button><span className="text-xs text-zinc-500 self-center">/{c.slug} â€¢ {c.validFrom? new Date(c.validFrom).toLocaleDateString():""} â†’ {c.validTo? new Date(c.validTo).toLocaleDateString():"âˆž"}</span></CardContent>
               </Card>
             ))}
@@ -132,10 +132,10 @@ export default function RewardsPage(){
 
       {tab==="coupons" && (
         <div className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-base">Redeem Coupon â€” server validates</CardTitle><CardDescription>Checks: exists â€¢ active â€¢ not expired â€¢ unused â€¢ minSpend â€¢ campaign â€¢ order eligibility â€¢ redeem once</CardDescription></CardHeader>
+          <Card><CardHeader><CardTitle className="text-base">Redeem Coupon — server validates</CardTitle><CardDescription>Checks: exists â€¢ active â€¢ not expired â€¢ unused â€¢ minSpend â€¢ campaign â€¢ order eligibility â€¢ redeem once</CardDescription></CardHeader>
             <CardContent className="flex flex-wrap gap-2 items-end">
               <div><Label>Code</Label><Input value={redeemCode} onChange={e=>setRedeemCode(e.target.value)} placeholder="SPICE1000" /></div>
-              <div><Label>Order Total â‚¹</Label><Input type="number" value={redeemTotal} onChange={e=>setRedeemTotal(Number(e.target.value))} /></div>
+              <div><Label>Order Total ₹</Label><Input type="number" value={redeemTotal} onChange={e=>setRedeemTotal(Number(e.target.value))} /></div>
               <Button onClick={redeem}>Redeem</Button>
               {redeemRes && <span className="text-sm">{redeemRes}</span>}
             </CardContent>
@@ -145,7 +145,7 @@ export default function RewardsPage(){
               <thead className="bg-zinc-50 dark:bg-zinc-800 text-xs"><tr><th className="p-2 text-left">Code</th><th>Campaign</th><th>Value</th><th>MinSpend</th><th>Status</th><th>Expiry</th></tr></thead>
               <tbody>
                 {coupons.map(c=>(
-                  <tr key={c.id} className="border-t"><td className="p-2 font-mono text-xs">{c.code}</td><td className="p-2 text-xs">{c.campaign?.name || c.rewardType}</td><td className="p-2">{c.value}{c.rewardType==="PERCENTAGE"?"%":""}</td><td className="p-2">â‚¹{(c as unknown as {minSpend:number}).minSpend||0}</td><td className="p-2"><Badge>{c.status}</Badge></td><td className="p-2 text-xs">{new Date(c.expiryDate).toLocaleDateString()}</td></tr>
+                  <tr key={c.id} className="border-t"><td className="p-2 font-mono text-xs">{c.code}</td><td className="p-2 text-xs">{c.campaign?.name || c.rewardType}</td><td className="p-2">{c.value}{c.rewardType==="PERCENTAGE"?"%":""}</td><td className="p-2">₹{(c as unknown as {minSpend:number}).minSpend||0}</td><td className="p-2"><Badge>{c.status}</Badge></td><td className="p-2 text-xs">{new Date(c.expiryDate).toLocaleDateString()}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -155,7 +155,7 @@ export default function RewardsPage(){
 
       {tab==="loyalty" && (
         <div className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-base">Loyalty â€” Points Ledger</CardTitle><CardDescription>Track customer â€¢ balance â€¢ earn/redeem/adjustment/expiry â€¢ reason â€¢ linked bill</CardDescription></CardHeader>
+          <Card><CardHeader><CardTitle className="text-base">Loyalty — Points Ledger</CardTitle><CardDescription>Track customer â€¢ balance â€¢ earn/redeem/adjustment/expiry â€¢ reason â€¢ linked bill</CardDescription></CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-4 items-end">
               <div><Label>Customer ID</Label><Input value={loyaltyForm.customerId} onChange={e=>setLoyaltyForm({...loyaltyForm, customerId:e.target.value})} /></div>
               <div><Label>Type</Label><select value={loyaltyForm.type} onChange={e=>setLoyaltyForm({...loyaltyForm, type:e.target.value as LoyaltyTx["type"]})} className="w-full border rounded h-9 px-3 text-sm"><option>EARN</option><option>REDEEM</option><option>ADJUSTMENT</option><option>EXPIRY</option></select></div>
@@ -169,7 +169,7 @@ export default function RewardsPage(){
               <thead className="bg-zinc-50 dark:bg-zinc-800 text-xs"><tr><th className="p-2 text-left">Customer</th><th>Type</th><th>Points</th><th>Balance</th><th>Reason</th><th>Bill</th><th>Date</th></tr></thead>
               <tbody>
                 {loyalty.map(l=>(
-                  <tr key={l.id} className="border-t"><td className="p-2 text-xs">{l.customerId}</td><td className="p-2"><Badge className={l.type==="EARN"?"bg-green-100 text-green-800": l.type==="REDEEM"?"bg-red-100 text-red-800":"bg-zinc-100"}>{l.type}</Badge></td><td className={`p-2 font-bold ${l.points>0?"text-green-600":"text-red-600"}`}>{l.points>0?`+${l.points}`:l.points}</td><td className="p-2">{l.balanceAfter}</td><td className="p-2 text-xs">{l.reason||"â€”"}</td><td className="p-2 text-xs">{l.billId||"â€”"}</td><td className="p-2 text-xs">{new Date(l.createdAt).toLocaleDateString()}</td></tr>
+                  <tr key={l.id} className="border-t"><td className="p-2 text-xs">{l.customerId}</td><td className="p-2"><Badge className={l.type==="EARN"?"bg-green-100 text-green-800": l.type==="REDEEM"?"bg-red-100 text-red-800":"bg-zinc-100"}>{l.type}</Badge></td><td className={`p-2 font-bold ${l.points>0?"text-green-600":"text-red-600"}`}>{l.points>0?`+${l.points}`:l.points}</td><td className="p-2">{l.balanceAfter}</td><td className="p-2 text-xs">{l.reason||"—"}</td><td className="p-2 text-xs">{l.billId||"—"}</td><td className="p-2 text-xs">{new Date(l.createdAt).toLocaleDateString()}</td></tr>
                 ))}
               </tbody>
             </table>

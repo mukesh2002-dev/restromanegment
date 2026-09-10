@@ -29,7 +29,7 @@ export default function TablesPage() {
   async function createTable() {
     if(!form.number.trim()){ setMsg("Table number required"); return; }
     const res=await fetch("/api/tables",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(form)});
-    if(res.ok){ setShowForm(false); setForm({ number:"", capacity:4, floor:"Ground", area:"Indoor", status:"AVAILABLE"}); setMsg("Table created with unique qrToken"); load(); } else { const j=await res.json(); setMsg(j.error||"Failed â€” number must be unique per restaurant"); }
+    if(res.ok){ setShowForm(false); setForm({ number:"", capacity:4, floor:"Ground", area:"Indoor", status:"AVAILABLE"}); setMsg("Table created with unique qrToken"); load(); } else { const j=await res.json(); setMsg(j.error||"Failed — number must be unique per restaurant"); }
   }
   async function updateStatus(id:string, status: Table["status"]) {
     const prev=tables;
@@ -69,7 +69,7 @@ export default function TablesPage() {
             <Card key={t.id} className="relative">
               <CardContent className="p-4 space-y-2 text-center">
                 <div className="font-bold text-lg">{t.number}</div>
-                <div className="text-xs text-zinc-500">{t.floor} â€¢ {t.area || "â€”"} â€¢ {t.capacity} pax</div>
+                <div className="text-xs text-zinc-500">{t.floor} â€¢ {t.area || "—"} â€¢ {t.capacity} pax</div>
                 <Badge className={`border ${color[t.status]}`}>{t.status}</Badge>
                 <select value={t.status} onChange={e=> updateStatus(t.id, e.target.value as Table["status"])} className="w-full border rounded h-7 text-xs px-1">
                   <option>AVAILABLE</option><option>OCCUPIED</option><option>RESERVED</option><option>BILLING</option><option>CLEANING</option>
@@ -86,7 +86,7 @@ export default function TablesPage() {
           ))}
         </div>
       )}
-      <Card><CardContent className="p-4 text-xs text-zinc-500">QR token is unique per table + per paid bill (Bill.qrToken). Table QR for dine-in ordering; Bill QR for reward â€” both server-validated. Print-ready via browser print.</CardContent></Card>
+      <Card><CardContent className="p-4 text-xs text-zinc-500">QR token is unique per table + per paid bill (Bill.qrToken). Table QR for dine-in ordering; Bill QR for reward — both server-validated. Print-ready via browser print.</CardContent></Card>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{id:stri
   let sent=0;
   for(const cust of customers as unknown as {id:string; name:string; phone:string}[]){
     const content=campaign.template?.content || "Hello {{name}}! Offer for you.";
-    const message=renderTemplate(content, { name: cust.name, restaurant: "Spice Garden", coupon: `WA-${Date.now().toString(36).slice(0,4)}`, value: `â‚¹${campaign.couponValue||100}`, expiry: new Date(Date.now()+7*86400000).toLocaleDateString() });
+    const message=renderTemplate(content, { name: cust.name, restaurant: "Spice Garden", coupon: `WA-${Date.now().toString(36).slice(0,4)}`, value: `₹${campaign.couponValue||100}`, expiry: new Date(Date.now()+7*86400000).toLocaleDateString() });
     const res=await sendWhatsApp({ to: cust.phone, message, event: campaign.event as never });
     if(dbOk){
       await prisma.whatsAppLog.create({ data:{ toPhone: cust.phone, message, status: res.success?"SENT":"FAILED", event: campaign.event as never, templateId: campaign.templateId, campaignId: campaign.id, providerId: res.providerId } as never }).catch(()=>null);

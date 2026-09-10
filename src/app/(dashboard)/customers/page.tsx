@@ -32,7 +32,7 @@ export default function CustomersPage(){
       let tot = 0;
       if(j.data && Array.isArray(j.data) && j.data.length) { data = j.data; tot = j.total ?? j.data.length; }
       else if(Array.isArray(j) && j.length) { data = j; tot = j.length; }
-      // fallback to demo when DB empty or stale filter (POS parity) â€” ensures Customers/CRM not empty
+      // fallback to demo when DB empty or stale filter (POS parity) — ensures Customers/CRM not empty
       if(!data.length){
         const filtered=demoCustomers.filter(c=> !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q)).slice(0,20) as unknown as Customer[];
         data = filtered; tot = q ? filtered.length : demoCustomers.length;
@@ -87,14 +87,14 @@ export default function CustomersPage(){
         <h1 className="text-2xl font-bold">Customer CRM â€¢ {total} customers</h1>
         <Button onClick={()=> setShowCreate(v=>!v)}>{showCreate?"Close":"+ New Customer"}</Button>
       </div>
-      {/* Current / Recent customer â€” top bar for current data */}
+      {/* Current / Recent customer — top bar for current data */}
       {recentlyUpdated && (
         <Card className="border-orange-200 bg-orange-50/50">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">ðŸŸ¢ Current / Recent Customer â€” Live CRM</CardTitle><CardDescription>Most recently updated â€” after POS bill, refresh to see new entry</CardDescription></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">ðŸŸ¢ Current / Recent Customer — Live CRM</CardTitle><CardDescription>Most recently updated — after POS bill, refresh to see new entry</CardDescription></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-4 text-sm">
             <div><div className="text-xs text-zinc-500">Name</div><div className="font-bold">{recentlyUpdated.name}</div><div className="text-xs">{recentlyUpdated.phone}</div></div>
-            <div><div className="text-xs text-zinc-500">Visits / Spend</div><div className="font-bold">{recentlyUpdated.totalVisits} visits â€¢ â‚¹{Math.round(recentlyUpdated.totalSpend)}</div><div className="text-xs">Points {recentlyUpdated.loyaltyPoints}</div></div>
-            <div><div className="text-xs text-zinc-500">B/T</div><div>{recentlyUpdated._counts? `${recentlyUpdated._counts.bills}B/${recentlyUpdated._counts.reviews}R` : "â€”"}</div><div className="text-xs">{recentlyUpdated.email||"â€”"}</div></div>
+            <div><div className="text-xs text-zinc-500">Visits / Spend</div><div className="font-bold">{recentlyUpdated.totalVisits} visits â€¢ ₹{Math.round(recentlyUpdated.totalSpend)}</div><div className="text-xs">Points {recentlyUpdated.loyaltyPoints}</div></div>
+            <div><div className="text-xs text-zinc-500">B/T</div><div>{recentlyUpdated._counts? `${recentlyUpdated._counts.bills}B/${recentlyUpdated._counts.reviews}R` : "—"}</div><div className="text-xs">{recentlyUpdated.email||"—"}</div></div>
             <div className="flex items-end"><Button size="sm" variant="outline" onClick={()=> open(recentlyUpdated.id)}>View Profile</Button></div>
           </CardContent>
         </Card>
@@ -131,12 +131,12 @@ export default function CustomersPage(){
           <tbody>
             {loading? <tr><td colSpan={7} className="p-6 text-center text-zinc-500">Loadingâ€¦</td></tr> :
               sortedList.map(c=>(
-                <tr key={c.id} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800"><td className="p-2 font-medium">{c.name}<div className="text-xs text-zinc-500">{c.email || "â€”"} {c.birthday?`â€¢ ${new Date(c.birthday).toLocaleDateString()}`:""}</div></td><td className="p-2">{c.phone}<div className="text-xs">{c.marketingConsent? <Badge className="bg-green-100 text-green-800 text-[10px]">consent</Badge> : <span className="text-zinc-400">no consent</span>}</div></td><td className="p-2 text-center">{c.totalVisits}</td><td className="p-2 text-center">â‚¹{Math.round(c.totalSpend)}</td><td className="p-2 text-center font-bold text-orange-700">{c.loyaltyPoints}</td><td className="p-2 text-center text-xs">{c._counts? `${c._counts.bills}B/${c._counts.reviews}R`:"â€”"}</td><td className="p-2"><Button size="sm" variant="outline" onClick={()=> open(c.id)}>Profile</Button></td></tr>
+                <tr key={c.id} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800"><td className="p-2 font-medium">{c.name}<div className="text-xs text-zinc-500">{c.email || "—"} {c.birthday?`â€¢ ${new Date(c.birthday).toLocaleDateString()}`:""}</div></td><td className="p-2">{c.phone}<div className="text-xs">{c.marketingConsent? <Badge className="bg-green-100 text-green-800 text-[10px]">consent</Badge> : <span className="text-zinc-400">no consent</span>}</div></td><td className="p-2 text-center">{c.totalVisits}</td><td className="p-2 text-center">₹{Math.round(c.totalSpend)}</td><td className="p-2 text-center font-bold text-orange-700">{c.loyaltyPoints}</td><td className="p-2 text-center text-xs">{c._counts? `${c._counts.bills}B/${c._counts.reviews}R`:"—"}</td><td className="p-2"><Button size="sm" variant="outline" onClick={()=> open(c.id)}>Profile</Button></td></tr>
               ))}
           </tbody>
         </table>
       </div>
-      <div className="text-xs text-zinc-500">Visits = paid bills count â€¢ Spend = sum paid â€¢ Points synced from loyaltyAccount â€¢ B/T = Bills/Reviews counts â€” now recomputed and sorted {sortOrder} by {sortBy}</div>
+      <div className="text-xs text-zinc-500">Visits = paid bills count â€¢ Spend = sum paid â€¢ Points synced from loyaltyAccount â€¢ B/T = Bills/Reviews counts — now recomputed and sorted {sortOrder} by {sortBy}</div>
 
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={()=> setSelected(null)}>
@@ -144,9 +144,9 @@ export default function CustomersPage(){
             <CardHeader className="pb-2">
               <CardTitle className="flex flex-wrap items-center justify-between gap-2">
                 <span>{selected.name} â€¢ {selected.phone}</span>
-                <Badge className="bg-zinc-900 text-white">Visits {selected.totalVisits} â€¢ Spend â‚¹{Math.round(selected.totalSpend)} â€¢ Points {selected.loyaltyPoints}</Badge>
+                <Badge className="bg-zinc-900 text-white">Visits {selected.totalVisits} â€¢ Spend ₹{Math.round(selected.totalSpend)} â€¢ Points {selected.loyaltyPoints}</Badge>
               </CardTitle>
-              <CardDescription>{selected.email || "â€”"} {selected.email?" â€¢ ":""}Birthday {selected.birthday? new Date(selected.birthday).toLocaleDateString(): "â€”"} â€¢ Last Visit {selected.totalVisits? "â€”" : "â€”"}</CardDescription>
+              <CardDescription>{selected.email || "—"} {selected.email?" â€¢ ":""}Birthday {selected.birthday? new Date(selected.birthday).toLocaleDateString(): "—"} â€¢ Last Visit {selected.totalVisits? "—" : "—"}</CardDescription>
               {/* Tabs */}
               <div className="flex gap-1 overflow-auto pt-3 border-b -mb-2">
                 {[
@@ -165,18 +165,18 @@ export default function CustomersPage(){
                 <div className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-3 text-xs">
                     <div className="border rounded p-3 bg-zinc-50 dark:bg-zinc-900"><div className="text-zinc-500">Total Visits</div><div className="text-xl font-bold">{selected.totalVisits}</div></div>
-                    <div className="border rounded p-3 bg-green-50"><div className="text-zinc-500">Total Spend</div><div className="text-xl font-bold">â‚¹{Math.round(selected.totalSpend)}</div></div>
+                    <div className="border rounded p-3 bg-green-50"><div className="text-zinc-500">Total Spend</div><div className="text-xl font-bold">₹{Math.round(selected.totalSpend)}</div></div>
                     <div className="border rounded p-3 bg-orange-50"><div className="text-zinc-500">Loyalty Points</div><div className="text-xl font-bold">{selected.loyaltyPoints}</div></div>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <h4 className="font-semibold text-xs mb-2">Recent Bills</h4>
-                      <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.bills as unknown as {billNumber?:string; totalAmount?:number; status?:string}[])?.slice(0,5).map((b,i)=><div key={i} className="border-b py-1 flex justify-between"><span>{(b as {billNumber:string}).billNumber || (b as {id:string}).id}</span><span>â‚¹{(b as {totalAmount:number}).totalAmount||0}</span></div>) || <span className="text-zinc-500">â€”</span>}</div>
+                      <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.bills as unknown as {billNumber?:string; totalAmount?:number; status?:string}[])?.slice(0,5).map((b,i)=><div key={i} className="border-b py-1 flex justify-between"><span>{(b as {billNumber:string}).billNumber || (b as {id:string}).id}</span><span>₹{(b as {totalAmount:number}).totalAmount||0}</span></div>) || <span className="text-zinc-500">—</span>}</div>
                       <Button size="sm" variant="ghost" className="text-xs mt-1 p-0 h-6" onClick={()=> setActiveTab("payments")}>View Payment History â†’</Button>
                     </div>
                     <div>
                       <h4 className="font-semibold text-xs mb-2">Recent Reviews</h4>
-                      <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.reviews as unknown as {rating:number; comment?:string}[])?.map((r,i)=><div key={i} className="border-b py-1">{"â˜…".repeat(r.rating)} {r.comment || ""}</div>) || <span className="text-zinc-500">â€”</span>}</div>
+                      <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.reviews as unknown as {rating:number; comment?:string}[])?.map((r,i)=><div key={i} className="border-b py-1">{"â˜…".repeat(r.rating)} {r.comment || ""}</div>) || <span className="text-zinc-500">—</span>}</div>
                     </div>
                   </div>
                 </div>
@@ -186,8 +186,8 @@ export default function CustomersPage(){
                   <h4 className="font-semibold">Orders History</h4>
                   <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">
                     {(selected as unknown as {orders?: {orderNumber:string; status:string; totalAmount:number; createdAt:string}[]}).orders?.map((o,i)=>(
-                      <div key={i} className="border rounded p-2 flex justify-between items-center"><span className="font-mono">{o.orderNumber}</span><span>{o.status}</span><span>â‚¹{o.totalAmount}</span><span className="text-zinc-500">{new Date(o.createdAt).toLocaleDateString()}</span></div>
-                    )) || (selected.bills as unknown as {billNumber:string; totalAmount:number; createdAt:string}[])?.slice(0,20).map((b,i)=><div key={i} className="border rounded p-2 flex justify-between"><span className="font-mono">{b.billNumber}</span><span>â‚¹{b.totalAmount}</span><span className="text-zinc-500">{new Date(b.createdAt).toLocaleDateString()}</span></div>) || <span className="text-zinc-500">No orders</span>}
+                      <div key={i} className="border rounded p-2 flex justify-between items-center"><span className="font-mono">{o.orderNumber}</span><span>{o.status}</span><span>₹{o.totalAmount}</span><span className="text-zinc-500">{new Date(o.createdAt).toLocaleDateString()}</span></div>
+                    )) || (selected.bills as unknown as {billNumber:string; totalAmount:number; createdAt:string}[])?.slice(0,20).map((b,i)=><div key={i} className="border rounded p-2 flex justify-between"><span className="font-mono">{b.billNumber}</span><span>₹{b.totalAmount}</span><span className="text-zinc-500">{new Date(b.createdAt).toLocaleDateString()}</span></div>) || <span className="text-zinc-500">No orders</span>}
                   </div>
                 </div>
               )}
@@ -197,13 +197,13 @@ export default function CustomersPage(){
               {activeTab==="loyalty" && (
                 <div className="space-y-2">
                   <h4 className="font-semibold">Loyalty Transactions</h4>
-                  <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">{(selected.loyaltyTxs as unknown as {points:number; reason?:string; type:string; createdAt?:string; balanceAfter?:number}[])?.map((l,i)=><div key={i} className={`border rounded p-2 flex justify-between ${l.points>0?"text-green-600":"text-red-600"}`}><span>{l.type} {l.points>0?`+${l.points}`:l.points} â€¢ Bal {l.balanceAfter||"â€”"}</span><span className="text-zinc-500">{(l as {reason:string}).reason||""} {l.createdAt? new Date(l.createdAt).toLocaleDateString():""}</span></div>) || <span className="text-zinc-500">â€”</span>}</div>
+                  <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">{(selected.loyaltyTxs as unknown as {points:number; reason?:string; type:string; createdAt?:string; balanceAfter?:number}[])?.map((l,i)=><div key={i} className={`border rounded p-2 flex justify-between ${l.points>0?"text-green-600":"text-red-600"}`}><span>{l.type} {l.points>0?`+${l.points}`:l.points} â€¢ Bal {l.balanceAfter||"—"}</span><span className="text-zinc-500">{(l as {reason:string}).reason||""} {l.createdAt? new Date(l.createdAt).toLocaleDateString():""}</span></div>) || <span className="text-zinc-500">—</span>}</div>
                 </div>
               )}
               {activeTab==="coupons" && (
                 <div className="space-y-2">
                   <h4 className="font-semibold">Coupons Used</h4>
-                  <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">{(selected.coupons as unknown as {code:string; status:string; value:number; expiryDate?:string; rewardType?:string}[])?.map((c,i)=><div key={i} className="border rounded p-2 flex justify-between"><span className="font-mono">{c.code} â€¢ {c.rewardType||""}</span><span>{c.status} â‚¹{c.value} {c.expiryDate? `â€¢ exp ${new Date(c.expiryDate).toLocaleDateString()}`:""}</span></div>) || <span className="text-zinc-500">â€”</span>}</div>
+                  <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">{(selected.coupons as unknown as {code:string; status:string; value:number; expiryDate?:string; rewardType?:string}[])?.map((c,i)=><div key={i} className="border rounded p-2 flex justify-between"><span className="font-mono">{c.code} â€¢ {c.rewardType||""}</span><span>{c.status} ₹{c.value} {c.expiryDate? `â€¢ exp ${new Date(c.expiryDate).toLocaleDateString()}`:""}</span></div>) || <span className="text-zinc-500">—</span>}</div>
                 </div>
               )}
               <Button variant="outline" className="w-full" onClick={()=> setSelected(null)}>Close</Button>

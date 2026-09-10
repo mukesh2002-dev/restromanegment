@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   const { tableId, customerId, type, items, discountAmount, notes } = parsed.data;
 
   const dbOk = await isDbAvailable();
-  // server must not trust client prices â€” fetch from DB/demo
+  // server must not trust client prices — fetch from DB/demo
   let subtotal = 0;
   const resolvedItems: { menuItemId:string; quantity:number; unitPrice:number; totalPrice:number; notes?:string; variantId?:string; addOnIds?:string[] }[] = [];
   if (!dbOk) {
@@ -61,9 +61,9 @@ export async function POST(req: Request) {
     return NextResponse.json(order, { status:201 });
   }
 
-  // DB path â€” table lifecycle & delivery guards (Â§9-10)
+  // DB path — table lifecycle & delivery guards (Â§9-10)
   if (type==="DINE_IN" && !tableId) return NextResponse.json({ error:"Table required for Dine-in (Â§9)" }, { status:400 });
-  if (type==="DELIVERY" && !customerId) return NextResponse.json({ error:"Delivery requires customer (Â§9/37) â€” search/create customer first" }, { status:400 });
+  if (type==="DELIVERY" && !customerId) return NextResponse.json({ error:"Delivery requires customer (Â§9/37) — search/create customer first" }, { status:400 });
   if (type==="DINE_IN" && tableId) {
     const table = await prisma.table.findUnique({ where:{ id: tableId } });
     if (!table) return NextResponse.json({ error:"Table not found" }, { status:404 });
@@ -71,11 +71,11 @@ export async function POST(req: Request) {
   if (table.restaurantId !== effectiveRid) return NextResponse.json({ error:"Table belongs to different restaurant" }, { status:403 });
     // prevent duplicate active orders on same table (Â§10)
     const activeOrder = await prisma.order.findFirst({ where:{ tableId, status:{ notIn:["COMPLETED","CANCELLED"] } } });
-    if (activeOrder) return NextResponse.json({ error:`Table ${table.number} already has active order ${activeOrder.orderNumber} â€” cannot create duplicate`, code:"TABLE_OCCUPIED" }, { status:409 });
-    if (table.status !== "AVAILABLE" && table.status !== "RESERVED") return NextResponse.json({ error:`Table ${table.number} is ${table.status} â€” must be AVAILABLE/RESERVED`, code:"TABLE_NOT_AVAILABLE" }, { status:400 });
+    if (activeOrder) return NextResponse.json({ error:`Table ${table.number} already has active order ${activeOrder.orderNumber} — cannot create duplicate`, code:"TABLE_OCCUPIED" }, { status:409 });
+    if (table.status !== "AVAILABLE" && table.status !== "RESERVED") return NextResponse.json({ error:`Table ${table.number} is ${table.status} — must be AVAILABLE/RESERVED`, code:"TABLE_NOT_AVAILABLE" }, { status:400 });
   }
 
-  // DB path â€” fetch real prices
+  // DB path — fetch real prices
   let dbSubtotal = 0;
   const dbItems = [];
   for (const it of items) {
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
   const orderNumber = genOrderNumber();
   const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
-  if (!restaurantId) return NextResponse.json({ error:"Restaurant not found â€” please re-login" }, { status:400 });
+  if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
   // Final FK guard: ensure tableId actually exists for this restaurant (prevents P2003 demoId vs DB mismatch)
   if (tableId) {
     const liveTable = await prisma.table.findUnique({ where:{ id: tableId } });
@@ -115,13 +115,13 @@ export async function POST(req: Request) {
           // use fallback silently and inform via notes
           (tableId as string) = fallback.id;
         } else {
-          return NextResponse.json({ error:"Selected table not found â€” please reselect table (refresh tables). No available table found.", code:"TABLE_NOT_FOUND_FALLBACK" }, { status:400 });
+          return NextResponse.json({ error:"Selected table not found — please reselect table (refresh tables). No available table found.", code:"TABLE_NOT_FOUND_FALLBACK" }, { status:400 });
         }
       } else {
-        return NextResponse.json({ error:"Table not found â€” please reselect table", code:"TABLE_NOT_FOUND" }, { status:400 });
+        return NextResponse.json({ error:"Table not found — please reselect table", code:"TABLE_NOT_FOUND" }, { status:400 });
       }
     } else if (liveTable.restaurantId !== restaurantId) {
-      return NextResponse.json({ error:"Table belongs to different restaurant â€” please refresh and reselect", code:"TABLE_RESTAURANT_MISMATCH" }, { status:400 });
+      return NextResponse.json({ error:"Table belongs to different restaurant — please refresh and reselect", code:"TABLE_RESTAURANT_MISMATCH" }, { status:400 });
     }
   }
   let order;
@@ -149,7 +149,7 @@ export async function POST(req: Request) {
     // Prisma P2003 = FK violation
     if (msg.includes("P2003") || msg.includes("orders_tableId_fkey") || msg.includes("Foreign key constraint")) {
       console.error("Order create FK violation", { tableId, restaurantId, error: msg });
-      return NextResponse.json({ error:"Table foreign key invalid â€” selected table does not exist. Please refresh tables and reselect.", code:"P2003_TABLE_FK", details: msg }, { status:400 });
+      return NextResponse.json({ error:"Table foreign key invalid — selected table does not exist. Please refresh tables and reselect.", code:"P2003_TABLE_FK", details: msg }, { status:400 });
     }
     console.error("Order create failed", e);
     return NextResponse.json({ error: msg }, { status:500 });
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
   // audit
   await prisma.auditLog.create({ data:{ staffId: session.staffId, action:"CREATE_ORDER", entity:"Order", entityId: order.id, details:{ orderNumber, type, totalAmount } } }).catch(()=>null);
 
-  // create KOT for kitchen â€” prevent duplicate KOT (Â§11)
+  // create KOT for kitchen — prevent duplicate KOT (Â§11)
   try {
     const existingKot = await prisma.kOT.findFirst({ where:{ orderId: order.id, status:{ in:["NEW","ACCEPTED","PREPARING"] } } });
     if (!existingKot) {

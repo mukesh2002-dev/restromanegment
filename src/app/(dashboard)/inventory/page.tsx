@@ -64,12 +64,12 @@ export default function InventoryPage(){
   async function createItem(){
     if(!itemForm.name){ setMsg("Name required"); return; }
     const res=await fetch("/api/inventory",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(itemForm)});
-    if(res.ok){ setMsg("Item created â€” service separate from POS"); setShowItemForm(false); loadItems(); } else { const j=await res.json(); setMsg(j.error||"Failed"); }
+    if(res.ok){ setMsg("Item created — service separate from POS"); setShowItemForm(false); loadItems(); } else { const j=await res.json(); setMsg(j.error||"Failed"); }
   }
   async function createTx(){
     if(!txForm.inventoryItemId){ setMsg("Select item"); return; }
     const res=await fetch("/api/inventory/transactions",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(txForm)});
-    if(res.ok){ setMsg(`Transaction ${txForm.type} recorded â€” stock auto-updated`); setShowTxForm(false); loadItems(); loadTx(); } else { const j=await res.json(); setMsg(j.error||"Failed"); }
+    if(res.ok){ setMsg(`Transaction ${txForm.type} recorded — stock auto-updated`); setShowTxForm(false); loadItems(); loadTx(); } else { const j=await res.json(); setMsg(j.error||"Failed"); }
   }
   async function createSupplier(){
     if(!supForm.name){ setMsg("Supplier name required"); return; }
@@ -81,7 +81,7 @@ export default function InventoryPage(){
     const payload={ supplierId: poForm.supplierId, notes: poForm.notes, items: poForm.items.filter(i=> i.inventoryItemId).map(i=> ({ inventoryItemId:i.inventoryItemId, quantity:Number(i.quantity), unitCost:Number(i.unitCost) })) };
     if(payload.items.length===0){ setMsg("Add at least one item"); return; }
     const res=await fetch("/api/purchase-orders",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(payload)});
-    if(res.ok){ setMsg("Purchase order created â€” DRAFT â†’ ORDERED â†’ RECEIVED (goods received) â†’ INVOICED"); setShowPOForm(false); loadPO(); } else { const j=await res.json(); setMsg(j.error||"Failed"); }
+    if(res.ok){ setMsg("Purchase order created — DRAFT â†’ ORDERED â†’ RECEIVED (goods received) â†’ INVOICED"); setShowPOForm(false); loadPO(); } else { const j=await res.json(); setMsg(j.error||"Failed"); }
   }
   async function advancePO(id:string, status:string){
     const res=await fetch(`/api/purchase-orders/${id}`,{ method:"PATCH", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ status })});
@@ -122,9 +122,9 @@ export default function InventoryPage(){
             <div><Label>Unit*</Label><select value={itemForm.unit as string} onChange={e=>setItemForm({...itemForm, unit:e.target.value as InvItem["unit"]})} className="w-full border rounded h-9 px-3 text-sm">{units.map(u=> <option key={u} value={u}>{u}</option>)}</select></div>
             <div><Label>Current Stock</Label><Input type="number" value={itemForm.currentStock??0} onChange={e=>setItemForm({...itemForm, currentStock:Number(e.target.value)})} /></div>
             <div><Label>Reorder Level</Label><Input type="number" value={itemForm.reorderLevel??10} onChange={e=>setItemForm({...itemForm, reorderLevel:Number(e.target.value)})} /></div>
-            <div><Label>Cost / unit â‚¹</Label><Input type="number" value={itemForm.costPerUnit??0} onChange={e=>setItemForm({...itemForm, costPerUnit:Number(e.target.value)})} /></div>
+            <div><Label>Cost / unit ₹</Label><Input type="number" value={itemForm.costPerUnit??0} onChange={e=>setItemForm({...itemForm, costPerUnit:Number(e.target.value)})} /></div>
             <div><Label>SKU (optional)</Label><Input value={itemForm.sku||""} onChange={e=>setItemForm({...itemForm, sku:e.target.value})} placeholder="auto" /></div>
-            <div><Label>Supplier</Label><select value={itemForm.supplierId||""} onChange={e=>setItemForm({...itemForm, supplierId:e.target.value})} className="w-full border rounded h-9 px-3 text-sm"><option value="">â€” None â€”</option>{suppliers.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div><Label>Supplier</Label><select value={itemForm.supplierId||""} onChange={e=>setItemForm({...itemForm, supplierId:e.target.value})} className="w-full border rounded h-9 px-3 text-sm"><option value="">— None —</option>{suppliers.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
             <div><Label>Batch</Label><Input value={itemForm.batchNumber||""} onChange={e=>setItemForm({...itemForm, batchNumber:e.target.value})} /></div>
             <div><Label>Expiry (if applicable)</Label><Input type="date" value={itemForm.expiryDate? (itemForm.expiryDate as string).slice(0,10):""} onChange={e=>setItemForm({...itemForm, expiryDate:e.target.value})} /></div>
             <Button onClick={createItem} className="md:col-span-3">Create Item</Button>
@@ -135,7 +135,7 @@ export default function InventoryPage(){
               <tbody>
                 {items.slice(0,100).map(it=>(
                   <tr key={it.id} className={`border-t ${it.currentStock===0? "bg-red-50": it.currentStock < it.reorderLevel? "bg-amber-50": it.expiryDate && new Date(it.expiryDate).getTime() < Date.now()+14*86400000? "bg-amber-50/60":""}`}>
-                    <td className="p-2 font-mono text-xs">{it.sku}</td><td className="p-2">{it.name}<div className="text-xs text-zinc-500">{it.batchNumber||"â€”"} â€¢ {it.unit}</div></td><td className="p-2 text-xs">{it.category}</td><td className="p-2 text-center"><Badge className={it.currentStock===0? "bg-red-600 text-white": it.currentStock < it.reorderLevel? "bg-amber-500 text-white":""}>{it.currentStock} {it.unit}</Badge></td><td className="p-2 text-center">{it.reorderLevel}</td><td className="p-2">â‚¹{it.costPerUnit}</td><td className="p-2 text-xs">{it.supplier?.name || "â€”"}</td><td className="p-2 text-xs">{it.expiryDate? new Date(it.expiryDate).toLocaleDateString(): "â€”"}</td>
+                    <td className="p-2 font-mono text-xs">{it.sku}</td><td className="p-2">{it.name}<div className="text-xs text-zinc-500">{it.batchNumber||"—"} â€¢ {it.unit}</div></td><td className="p-2 text-xs">{it.category}</td><td className="p-2 text-center"><Badge className={it.currentStock===0? "bg-red-600 text-white": it.currentStock < it.reorderLevel? "bg-amber-500 text-white":""}>{it.currentStock} {it.unit}</Badge></td><td className="p-2 text-center">{it.reorderLevel}</td><td className="p-2">₹{it.costPerUnit}</td><td className="p-2 text-xs">{it.supplier?.name || "—"}</td><td className="p-2 text-xs">{it.expiryDate? new Date(it.expiryDate).toLocaleDateString(): "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -146,9 +146,9 @@ export default function InventoryPage(){
 
       {tab==="transactions" && (
         <div className="space-y-3">
-          <div className="flex gap-2"><Button size="sm" onClick={()=> setShowTxForm(v=>!v)}>{showTxForm?"Close":"+ New Transaction"}</Button><Button size="sm" variant="outline" onClick={loadTx}>Refresh</Button><span className="text-xs text-zinc-500 self-center">Purchase positive, Consumption/Waste negative â€” stock auto-adjusted</span></div>
+          <div className="flex gap-2"><Button size="sm" onClick={()=> setShowTxForm(v=>!v)}>{showTxForm?"Close":"+ New Transaction"}</Button><Button size="sm" variant="outline" onClick={loadTx}>Refresh</Button><span className="text-xs text-zinc-500 self-center">Purchase positive, Consumption/Waste negative — stock auto-adjusted</span></div>
           {showTxForm && <Card><CardHeader><CardTitle className="text-base">Stock Transaction</CardTitle><CardDescription>Types: Purchase / Consumption / Adjustment / Waste / Return / Transfer</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-4">
-            <div className="md:col-span-2"><Label>Item*</Label><select value={txForm.inventoryItemId} onChange={e=>setTxForm({...txForm, inventoryItemId:e.target.value})} className="w-full border rounded h-9 px-3 text-sm"><option value="">Select item</option>{items.slice(0,100).map(i=> <option key={i.id} value={i.id}>{i.sku} â€” {i.name} ({i.currentStock}{i.unit})</option>)}</select></div>
+            <div className="md:col-span-2"><Label>Item*</Label><select value={txForm.inventoryItemId} onChange={e=>setTxForm({...txForm, inventoryItemId:e.target.value})} className="w-full border rounded h-9 px-3 text-sm"><option value="">Select item</option>{items.slice(0,100).map(i=> <option key={i.id} value={i.id}>{i.sku} — {i.name} ({i.currentStock}{i.unit})</option>)}</select></div>
             <div><Label>Type*</Label><select value={txForm.type} onChange={e=>setTxForm({...txForm, type:e.target.value as Tx["type"]})} className="w-full border rounded h-9 px-3 text-sm"><option>PURCHASE</option><option>CONSUMPTION</option><option>ADJUSTMENT</option><option>WASTE</option><option>RETURN</option><option>TRANSFER</option></select></div>
             <div><Label>Quantity* (+)in (-)out</Label><Input type="number" value={txForm.quantity} onChange={e=>setTxForm({...txForm, quantity:Number(e.target.value)})} /></div>
             <div className="md:col-span-4"><Label>Reference</Label><Input value={txForm.reference} onChange={e=>setTxForm({...txForm, reference:e.target.value})} placeholder="PO-123, wastage reason, etc" /></div>
@@ -159,7 +159,7 @@ export default function InventoryPage(){
               <thead className="bg-zinc-50 dark:bg-zinc-800 text-xs sticky top-0"><tr><th className="p-2 text-left">Item</th><th>Type</th><th>Qty</th><th>Reference</th><th>Date</th></tr></thead>
               <tbody>
                 {txs.slice(0,100).map(t=>(
-                  <tr key={t.id} className="border-t"><td className="p-2 text-xs">{t.inventoryItem?.name || t.inventoryItemId}<div className="text-zinc-500">{t.inventoryItem?.sku||""}</div></td><td className="p-2"><Badge className={t.type==="PURCHASE"?"bg-green-100 text-green-800": t.type==="CONSUMPTION"?"bg-blue-100 text-blue-800": t.type==="WASTE"?"bg-red-100 text-red-800":"bg-zinc-100"}>{t.type}</Badge></td><td className={`p-2 font-bold ${t.quantity>0?"text-green-600":"text-red-600"}`}>{t.quantity>0?`+${t.quantity}`:t.quantity}</td><td className="p-2 text-xs">{t.reference||"â€”"}</td><td className="p-2 text-xs">{new Date(t.createdAt).toLocaleString()}</td></tr>
+                  <tr key={t.id} className="border-t"><td className="p-2 text-xs">{t.inventoryItem?.name || t.inventoryItemId}<div className="text-zinc-500">{t.inventoryItem?.sku||""}</div></td><td className="p-2"><Badge className={t.type==="PURCHASE"?"bg-green-100 text-green-800": t.type==="CONSUMPTION"?"bg-blue-100 text-blue-800": t.type==="WASTE"?"bg-red-100 text-red-800":"bg-zinc-100"}>{t.type}</Badge></td><td className={`p-2 font-bold ${t.quantity>0?"text-green-600":"text-red-600"}`}>{t.quantity>0?`+${t.quantity}`:t.quantity}</td><td className="p-2 text-xs">{t.reference||"—"}</td><td className="p-2 text-xs">{new Date(t.createdAt).toLocaleString()}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -179,7 +179,7 @@ export default function InventoryPage(){
           </CardContent></Card>}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {suppliers.map(s=>(
-              <Card key={s.id}><CardHeader className="pb-2"><CardTitle className="text-base">{s.name}</CardTitle><CardDescription>{s.contactName||"â€”"} â€¢ {s.phone||"â€”"} â€¢ {s.email||"â€”"}</CardDescription></CardHeader><CardContent className="text-xs text-zinc-500">{s.address||"â€”"} â€¢ GST {s.gstin||"â€”"}</CardContent></Card>
+              <Card key={s.id}><CardHeader className="pb-2"><CardTitle className="text-base">{s.name}</CardTitle><CardDescription>{s.contactName||"—"} â€¢ {s.phone||"—"} â€¢ {s.email||"—"}</CardDescription></CardHeader><CardContent className="text-xs text-zinc-500">{s.address||"—"} â€¢ GST {s.gstin||"—"}</CardContent></Card>
             ))}
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function InventoryPage(){
               <thead className="bg-zinc-50 dark:bg-zinc-800 text-xs"><tr><th className="p-2 text-left">PO</th><th>Supplier</th><th>Status</th><th>Total</th><th>Created</th><th>Actions</th></tr></thead>
               <tbody>
                 {pos.map(p=>(
-                  <tr key={p.id} className="border-t"><td className="p-2 font-mono text-xs">{p.poNumber}</td><td className="p-2 text-xs">{p.supplier?.name || p.supplierId}</td><td className="p-2"><Badge className={p.status==="RECEIVED"?"bg-green-600 text-white": p.status==="ORDERED"?"bg-blue-100 text-blue-800": "bg-zinc-100"}>{p.status}</Badge></td><td className="p-2">â‚¹{p.totalAmount}</td><td className="p-2 text-xs">{new Date(p.createdAt).toLocaleDateString()}</td>
+                  <tr key={p.id} className="border-t"><td className="p-2 font-mono text-xs">{p.poNumber}</td><td className="p-2 text-xs">{p.supplier?.name || p.supplierId}</td><td className="p-2"><Badge className={p.status==="RECEIVED"?"bg-green-600 text-white": p.status==="ORDERED"?"bg-blue-100 text-blue-800": "bg-zinc-100"}>{p.status}</Badge></td><td className="p-2">₹{p.totalAmount}</td><td className="p-2 text-xs">{new Date(p.createdAt).toLocaleDateString()}</td>
                     <td className="p-2 flex gap-1">{p.status==="DRAFT" && <Button size="sm" variant="outline" className="h-6 text-xs" onClick={()=> advancePO(p.id,"ORDERED")}>Order</Button>}{p.status==="ORDERED" && <Button size="sm" className="h-6 text-xs" onClick={()=> advancePO(p.id,"RECEIVED")}>Receive (stock in)</Button>}{p.status==="RECEIVED" && <Button size="sm" variant="outline" className="h-6 text-xs" onClick={()=> advancePO(p.id,"INVOICED")}>Invoice</Button>}</td></tr>
                 ))}
               </tbody>
@@ -219,9 +219,9 @@ export default function InventoryPage(){
 
       {tab==="alerts" && (
         <div className="grid gap-4 md:grid-cols-2">
-          <Card><CardHeader><CardTitle className="text-base">Low Stock ({alerts.low.length})</CardTitle></CardHeader><CardContent className="space-y-1 text-sm max-h-80 overflow-auto">{alerts.low.slice(0,30).map(i=> <div key={i.id} className="flex justify-between border-b py-1"><span>{i.sku} {i.name}</span><span className="text-amber-600">{i.currentStock}/{i.reorderLevel} {i.unit}</span></div>) || "â€”"}</CardContent></Card>
-          <Card className="border-red-200"><CardHeader><CardTitle className="text-base">Out of Stock ({alerts.out.length})</CardTitle></CardHeader><CardContent className="space-y-1 text-sm max-h-80 overflow-auto">{alerts.out.slice(0,30).map(i=> <div key={i.id} className="flex justify-between border-b py-1"><span>{i.sku} {i.name}</span><span className="text-red-600">0 {i.unit}</span></div>) || "â€”"}</CardContent></Card>
-          <Card className="border-amber-200"><CardHeader><CardTitle className="text-base">Near Expiry 14d ({alerts.nearExpiry.length})</CardTitle></CardHeader><CardContent className="space-y-1 text-sm max-h-80 overflow-auto">{alerts.nearExpiry.slice(0,30).map(i=> <div key={i.id} className="flex justify-between border-b py-1"><span>{i.sku} {i.name}</span><span>{i.expiryDate? new Date(i.expiryDate).toLocaleDateString():"â€”"}</span></div>) || "â€”"}</CardContent></Card>
+          <Card><CardHeader><CardTitle className="text-base">Low Stock ({alerts.low.length})</CardTitle></CardHeader><CardContent className="space-y-1 text-sm max-h-80 overflow-auto">{alerts.low.slice(0,30).map(i=> <div key={i.id} className="flex justify-between border-b py-1"><span>{i.sku} {i.name}</span><span className="text-amber-600">{i.currentStock}/{i.reorderLevel} {i.unit}</span></div>) || "—"}</CardContent></Card>
+          <Card className="border-red-200"><CardHeader><CardTitle className="text-base">Out of Stock ({alerts.out.length})</CardTitle></CardHeader><CardContent className="space-y-1 text-sm max-h-80 overflow-auto">{alerts.out.slice(0,30).map(i=> <div key={i.id} className="flex justify-between border-b py-1"><span>{i.sku} {i.name}</span><span className="text-red-600">0 {i.unit}</span></div>) || "—"}</CardContent></Card>
+          <Card className="border-amber-200"><CardHeader><CardTitle className="text-base">Near Expiry 14d ({alerts.nearExpiry.length})</CardTitle></CardHeader><CardContent className="space-y-1 text-sm max-h-80 overflow-auto">{alerts.nearExpiry.slice(0,30).map(i=> <div key={i.id} className="flex justify-between border-b py-1"><span>{i.sku} {i.name}</span><span>{i.expiryDate? new Date(i.expiryDate).toLocaleDateString():"—"}</span></div>) || "—"}</CardContent></Card>
           <Card><CardHeader><CardTitle className="text-base">Inventory Service</CardTitle></CardHeader><CardContent className="text-xs text-zinc-500">Service at <code>src/lib/inventory-service.ts:1</code> separate from POS. Future: RecipeItem consumption auto via <code>consumeForOrder()</code>. Current stock is source of truth, transactions append-only.</CardContent></Card>
         </div>
       )}

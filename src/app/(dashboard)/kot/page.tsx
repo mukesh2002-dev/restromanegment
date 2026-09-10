@@ -43,7 +43,7 @@ export default function KOTPage(){
       if(Array.isArray(j) && j.length) {
         setKots(j);
       } else if(Array.isArray(j) && !j.length){
-        // Only fallback to demo when unfiltered and DB truly empty â€” not for filtered empty (stale cache fix)
+        // Only fallback to demo when unfiltered and DB truly empty — not for filtered empty (stale cache fix)
         if(filter==="ALL" && priorityFilter==="ALL"){
           try {
             const resAll = await fetch('/api/kots', { cache: 'no-store' }); const jAll = await resAll.json();
@@ -51,11 +51,11 @@ export default function KOTPage(){
               const { demoKOTs } = await import("@/data/demo");
               setKots(demoKOTs as unknown as KOT[]);
             } else {
-              setKots([]); // filtered empty is valid â€” don't show stale demo
+              setKots([]); // filtered empty is valid — don't show stale demo
             }
           } catch { setKots([]); }
         } else {
-          setKots([]); // filtered empty â€” show correct empty, not demo
+          setKots([]); // filtered empty — show correct empty, not demo
         }
       } else if(Array.isArray(j)) setKots(j);
     } catch {
@@ -119,7 +119,7 @@ export default function KOTPage(){
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {loading? Array.from({length:6}).map((_,i)=>(<Card key={i} className="animate-pulse"><CardHeader className="pb-2"><div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded" /><div className="h-3 w-32 bg-zinc-100 dark:bg-zinc-800 rounded mt-2" /></CardHeader><CardContent className="space-y-2"><div className="h-10 bg-zinc-100 dark:bg-zinc-800 rounded" /><div className="h-10 bg-zinc-100 dark:bg-zinc-800 rounded" /></CardContent></Card>))
-        : kots.length===0? <Card className="col-span-full"><CardContent className="p-8 text-center text-sm text-zinc-500">No KOTs for this filter â€” place an order via POS to generate a KOT (item routing to kitchen).</CardContent></Card> :
+        : kots.length===0? <Card className="col-span-full"><CardContent className="p-8 text-center text-sm text-zinc-500">No KOTs for this filter — place an order via POS to generate a KOT (item routing to kitchen).</CardContent></Card> :
           kots.map(k=>{
             const mins=elapsedMin(k.createdAt);
             const delay= mins>30?"ðŸ”´ >30m delayed": mins>15?"ðŸŸ¡ >15m": mins>8?"â€¢":"";
@@ -182,7 +182,7 @@ export default function KOTPage(){
                 <div>Time: {new Date(selected.createdAt).toLocaleString()} â€¢ {elapsedMin(selected.createdAt)}m ago</div>
                 <div className="border-t my-2" />
                 {selected.items.map(it=> <div key={it.id} className="flex justify-between"><span>{it.name} Ã—{it.quantity}{it.notes?` (${it.notes})`:""} {it.status==="CANCELLED"?"[CANCELLED]":""}</span></div>)}
-                <div className="border-t pt-2 text-xs text-center">Kitchen copy â€” routing: all items to hot section</div>
+                <div className="border-t pt-2 text-xs text-center">Kitchen copy — routing: all items to hot section</div>
               </div>
               <Button className="w-full" onClick={()=> window.print()}>Print KOT</Button>
               <Button variant="outline" className="w-full" onClick={()=> setSelected(null)}>Close</Button>

@@ -160,7 +160,7 @@ export function PaymentHistory({ customerId, customerName, customerPhone }: { cu
             <div><div className="text-xs font-medium mb-1">From</div><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8" /></div>
             <div><div className="text-xs font-medium mb-1">To</div><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8" /></div>
             <div><div className="text-xs font-medium mb-1">Min ₹</div><Input type="number" placeholder="0" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} className="h-8 w-24" /></div>
-            <div><div className="text-xs font-medium mb-1">Max ₹</div><Input type="number" placeholder="—" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)} className="h-8 w-24" /></div>
+            <div><div className="text-xs font-medium mb-1">Max ₹</div><Input type="number" placeholder="No limit" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)} className="h-8 w-24" /></div>
             <Button size="sm" variant="outline" onClick={() => { setQ(""); setMethod("ALL"); setStatus("ALL"); setFrom(""); setTo(""); setMinAmount(""); setMaxAmount(""); setPage(1); }} className="h-8">Reset</Button>
             <Button size="sm" onClick={load} className="h-8">Apply</Button>
           </div>

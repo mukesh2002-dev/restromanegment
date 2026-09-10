@@ -62,7 +62,7 @@ export async function POST(req: Request) {
   const effectiveRid = await getEffectiveRestaurantId(session.restaurantId);
   if (order.restaurantId !== effectiveRid) return NextResponse.json({ error:"Order belongs to different restaurant" }, { status:403 });
 
-  // server recomputes totals â€” never trust client total (Â§13)
+  // server recomputes totals — never trust client total (Â§13)
   const subtotal = order.subtotal;
   const taxAmount = order.taxAmount;
   const discount = discountAmount ?? order.discountAmount;
@@ -76,10 +76,10 @@ export async function POST(req: Request) {
     if (coupon.status !== "ACTIVE") return NextResponse.json({ error:`Coupon ${coupon.code} is ${coupon.status}`, code:"COUPON_INVALID" }, { status:400 });
     if (coupon.expiryDate < new Date()) return NextResponse.json({ error:"Coupon expired", code:"COUPON_EXPIRED" }, { status:400 });
     if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) return NextResponse.json({ error:"Coupon usage limit reached", code:"COUPON_LIMIT" }, { status:400 });
-    // ownership check â€” if coupon has customerId, only that customer can use (Â§25)
+    // ownership check — if coupon has customerId, only that customer can use (Â§25)
     if (coupon.customerId && order.customerId && coupon.customerId !== order.customerId) return NextResponse.json({ error:"Coupon does not belong to this customer", code:"COUPON_OWNERSHIP" }, { status:403 });
     const preCouponTotal = subtotal + taxAmount - discount;
-    if (preCouponTotal < coupon.minSpend) return NextResponse.json({ error:`Minimum order â‚¹${coupon.minSpend} required for this coupon`, code:"COUPON_MIN_SPEND" }, { status:400 });
+    if (preCouponTotal < coupon.minSpend) return NextResponse.json({ error:`Minimum order ₹${coupon.minSpend} required for this coupon`, code:"COUPON_MIN_SPEND" }, { status:400 });
     if (coupon.rewardType === "PERCENTAGE") {
       couponDiscount = Math.round(preCouponTotal * Number(coupon.value) / 100);
       if (coupon.maxDiscount) couponDiscount = Math.min(couponDiscount, Number(coupon.maxDiscount));
@@ -99,8 +99,8 @@ export async function POST(req: Request) {
     }
     const cust = await prisma.customer.findUnique({ where:{ id: order.customerId } });
     if (!cust) return NextResponse.json({ error:"Customer not found for loyalty" }, { status:404 });
-    if (cust.loyaltyPoints < loyaltyPointsToRedeem) return NextResponse.json({ error:`Insufficient points â€” available ${cust.loyaltyPoints}`, code:"INSUFFICIENT_POINTS" }, { status:400 });
-    // 1 pt = â‚¹1 discount (Â§24 points per â‚¹100 configurable but redeem 1:1 for now)
+    if (cust.loyaltyPoints < loyaltyPointsToRedeem) return NextResponse.json({ error:`Insufficient points — available ${cust.loyaltyPoints}`, code:"INSUFFICIENT_POINTS" }, { status:400 });
+    // 1 pt = ₹1 discount (Â§24 points per ₹100 configurable but redeem 1:1 for now)
     loyaltyDiscount = loyaltyPointsToRedeem;
   }
 
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 
   const sumPayments = payments.reduce((a,p)=>a+p.amount,0);
   if (sumPayments < totalAmount - 0.01) {
-    return NextResponse.json({ error:`Payments sum â‚¹${sumPayments} less than bill total â‚¹${totalAmount}`, code:"PAYMENT_SHORT" }, { status:400 });
+    return NextResponse.json({ error:`Payments sum ₹${sumPayments} less than bill total ₹${totalAmount}`, code:"PAYMENT_SHORT" }, { status:400 });
   }
   const eligibleToMarkPaid = sumPayments >= totalAmount - 0.01;
 
@@ -167,7 +167,7 @@ export async function POST(req: Request) {
           if (earnPoints>0) {
             const c2 = await prisma.customer.findUnique({ where:{ id: order.customerId } });
             const bal = (c2?.loyaltyPoints||0) + earnPoints;
-            await prisma.loyaltyTransaction.create({ data:{ customerId: order.customerId, billId: b.id, type:"EARN", points: earnPoints, balanceAfter: bal, reason:`Earn bill ${b.billNumber} â‚¹${totalAmount}` } }).catch(()=>null);
+            await prisma.loyaltyTransaction.create({ data:{ customerId: order.customerId, billId: b.id, type:"EARN", points: earnPoints, balanceAfter: bal, reason:`Earn bill ${b.billNumber} ₹${totalAmount}` } }).catch(()=>null);
             await prisma.customer.update({ where:{ id: order.customerId }, data:{ loyaltyPoints: bal } }).catch(()=>null);
             await prisma.loyaltyAccount.upsert({ where:{ customerId: order.customerId }, create:{ customerId: order.customerId, points: earnPoints }, update:{ points: bal } }).catch(()=>null);
             loyaltyEarned = earnPoints;

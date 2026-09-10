@@ -19,7 +19,7 @@ export async function GET() {
     const { getEffectiveRestaurantId } = await import("@/lib/db");
     restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
   } else {
-    // unauthenticated â€” show first restaurant's data (POS fallback)
+    // unauthenticated — show first restaurant's data (POS fallback)
     const { getEffectiveRestaurantId } = await import("@/lib/db");
     restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
   }
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   }
   try {
     const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
-    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found â€” please re-login" }, { status:400 });
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
     const created = await prisma.category.create({
       data: { restaurantId, name, slug: finalSlug, description, sortOrder: sortOrder||0, isActive: isActive??true, imageUrl: imageUrl||null },
     });

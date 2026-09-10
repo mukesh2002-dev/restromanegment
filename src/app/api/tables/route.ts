@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   try {
     const { getEffectiveRestaurantId } = await import("@/lib/db");
     const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
-    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found â€” please re-login" }, { status:400 });
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
     const created = await prisma.table.create({ data:{ restaurantId, number, capacity, floor, area, status: status as never, qrToken } });
     return NextResponse.json(created, { status:201 });
   } catch (e: unknown) {
