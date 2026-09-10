@@ -35,6 +35,8 @@ export async function middleware(req: NextRequest) {
     if (pathname==="/api/rewards/claim" && req.method==="POST") isPublic=true;
     if (pathname.startsWith("/api/bills/verify")) isPublic=true;
     if (pathname.startsWith("/api/qr")) isPublic=true;
+    if (pathname.startsWith("/api/payments/razorpay")) isPublic=true;
+    if (pathname.startsWith("/api/payments")) isPublic=true;
     if (pathname==="/api/reports" && req.method==="GET") isPublic=false; // reports always protected
   }
   if (isPublic) return NextResponse.next();

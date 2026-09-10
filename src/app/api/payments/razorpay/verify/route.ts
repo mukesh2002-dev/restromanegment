@@ -11,8 +11,9 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  // Payment verification is triggered from the UI after a successful checkout; do not block
+  // valid same-origin requests on a protected POS session.
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(()=>null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error:"Invalid payload", details: parsed.error.flatten() }, { status:400 });
