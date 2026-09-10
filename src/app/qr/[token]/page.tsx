@@ -74,7 +74,14 @@ export default function QRPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4 gap-3">
+      {/* Home button - top */}
+      <div className="w-full max-w-lg flex justify-between items-center">
+        <a href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+          <span>←</span> Home
+        </a>
+        <a href="/dashboard" className="text-xs text-zinc-500 hover:underline dark:text-zinc-400">Dashboard →</a>
+      </div>
       <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle>Spice Garden — Rate & Win</CardTitle>
@@ -155,11 +162,20 @@ export default function QRPage() {
                 <Button variant="outline" className="flex-1 h-9" onClick={()=> window.print()}>Print Coupon</Button>
                 <Button variant="ghost" className="flex-1 h-9" onClick={()=> setStep(1)}>Rate Another Bill</Button>
               </div>
+              <a href="/" className="w-full inline-flex justify-center items-center gap-1.5 text-sm font-semibold text-white bg-zinc-900 hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 rounded-md h-10 mt-1">
+                ⌂ Go to Home
+              </a>
             </div>
           )}
           {result && !result.ok && step>=4 && <div className="text-xs text-zinc-500 pt-2">Anti-abuse: duplicate scans → ALREADY_CLAIMED, IP logged, rate-limited, expired QR rejected.</div>}
+          {/* Home option on all steps */}
+          <div className="pt-3 border-t dark:border-zinc-800 mt-1 flex gap-2">
+            <a href="/" className="flex-1 inline-flex justify-center items-center gap-1.5 text-xs font-medium border rounded-md h-9 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300">⌂ Home</a>
+            <a href="/order" className="flex-1 inline-flex justify-center items-center gap-1.5 text-xs font-medium border rounded-md h-9 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300">Order Online</a>
+          </div>
         </CardContent>
       </Card>
+      <a href="/" className="text-xs text-zinc-500 hover:underline dark:text-zinc-400">← Back to Home</a>
     </div>
   );
 }
