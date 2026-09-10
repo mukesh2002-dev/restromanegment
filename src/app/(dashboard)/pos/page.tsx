@@ -44,8 +44,15 @@ function useMenu() {
 
 export default function POSPage() {
   const { items: menu, cats } = useMenu();
-  const [tables, setTables] = useState<typeof demoTables>(demoTables);
-  useEffect(()=>{ fetch("/api/tables").then(r=>r.json()).then(j=> Array.isArray(j)? setTables(j):null).catch(()=>null); }, []);
+  const [tables, setTables] = useState<typeof demoTables>([]);
+  const [tablesLoaded, setTablesLoaded] = useState(false);
+  useEffect(()=>{
+    fetch("/api/tables").then(r=>r.json()).then(j=> {
+      if(Array.isArray(j) && j.length) setTables(j);
+      else setTables(demoTables);
+      setTablesLoaded(true);
+    }).catch(()=>{ setTables(demoTables); setTablesLoaded(true); });
+  }, []);
   const [orderType, setOrderType] = useState<"DINE_IN"|"TAKEAWAY"|"DELIVERY">("DINE_IN");
   const [tableId, setTableId] = useState<string>("");
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
@@ -250,9 +257,16 @@ export default function POSPage() {
       }catch{}
     }
     let effectiveTableId = tableId;
-    if(orderType==="DINE_IN" && !tableId){
+    // validate existing tableId is still in live tables list (fixes demoId vs DB mismatch P2003)
+    if(orderType==="DINE_IN" && tableId && tables.length && !tables.some(t=> t.id===tableId)){
       const avail = tables.find(t=> t.status==="AVAILABLE" || t.status==="RESERVED");
-      if(avail){ effectiveTableId = avail.id; setTableId(avail.id); } else { const m="Step 1: Select table for Dine-in — no available table"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }
+      if(avail){ effectiveTableId = avail.id; setTableId(avail.id); setMsg(`Selected table not found in DB — auto-switched to ${avail.number}`); }
+      else { const m="Selected table not found — please refresh tables and reselect (P2003)"; setMsg(m); setLastError(m); return; }
+    }
+    if(orderType==="DINE_IN" && !effectiveTableId){
+      if(!tablesLoaded){ const m="Tables loading — please wait 2 sec and retry"; setMsg(m); setLastError(m); return; }
+      const avail = tables.find(t=> t.status==="AVAILABLE" || t.status==="RESERVED");
+      if(avail){ effectiveTableId = avail.id; setTableId(avail.id); } else { const m="Step 1: Select table for Dine-in — no available table (all OCCUPIED)"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }
     }
     if(orderType==="DELIVERY" && !deliveryAddress.trim()){ const m="Step 3: Delivery address required"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }
     if(orderType==="DELIVERY" && !resolvedCustomer && resolvedMode!=="walkin" && resolvedMode!=="new"){ const m="Delivery requires customer — Search or Add New Customer first (Step 3)"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return; }

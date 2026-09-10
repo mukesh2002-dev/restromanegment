@@ -102,24 +102,56 @@ export async function POST(req: Request) {
   const orderNumber = genOrderNumber();
   const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
   if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
-  const order = await prisma.order.create({
-    data:{
-      restaurantId,
-      orderNumber,
-      tableId: tableId||null,
-      customerId: customerId||null,
-      type: type as never,
-      status:"PLACED",
-      subtotal: dbSubtotal,
-      taxAmount,
-      discountAmount: discount,
-      totalAmount,
-      notes,
-      createdById: session.staffId,
-      items:{ create: dbItems },
-    },
-    include:{ items:true },
-  });
+  // Final FK guard: ensure tableId actually exists for this restaurant (prevents P2003 demoId vs DB mismatch)
+  if (tableId) {
+    const liveTable = await prisma.table.findUnique({ where:{ id: tableId } });
+    if (!liveTable) {
+      // auto-fallback: try to find any available table for DINE_IN instead of crashing
+      if (type==="DINE_IN") {
+        const fallback = await prisma.table.findFirst({ where:{ restaurantId, status:{ in:["AVAILABLE","RESERVED"] } } });
+        if (fallback) {
+          // use fallback silently and inform via notes
+          (tableId as string) = fallback.id;
+        } else {
+          return NextResponse.json({ error:"Selected table not found — please reselect table (refresh tables). No available table found.", code:"TABLE_NOT_FOUND_FALLBACK" }, { status:400 });
+        }
+      } else {
+        return NextResponse.json({ error:"Table not found — please reselect table", code:"TABLE_NOT_FOUND" }, { status:400 });
+      }
+    } else if (liveTable.restaurantId !== restaurantId) {
+      return NextResponse.json({ error:"Table belongs to different restaurant — please refresh and reselect", code:"TABLE_RESTAURANT_MISMATCH" }, { status:400 });
+    }
+  }
+  let order;
+  try {
+    order = await prisma.order.create({
+      data:{
+        restaurantId,
+        orderNumber,
+        tableId: tableId||null,
+        customerId: customerId||null,
+        type: type as never,
+        status:"PLACED",
+        subtotal: dbSubtotal,
+        taxAmount,
+        discountAmount: discount,
+        totalAmount,
+        notes,
+        createdById: session.staffId,
+        items:{ create: dbItems },
+      },
+      include:{ items:true },
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error? e.message : String(e);
+    // Prisma P2003 = FK violation
+    if (msg.includes("P2003") || msg.includes("orders_tableId_fkey") || msg.includes("Foreign key constraint")) {
+      console.error("Order create FK violation", { tableId, restaurantId, error: msg });
+      return NextResponse.json({ error:"Table foreign key invalid — selected table does not exist. Please refresh tables and reselect.", code:"P2003_TABLE_FK", details: msg }, { status:400 });
+    }
+    console.error("Order create failed", e);
+    return NextResponse.json({ error: msg }, { status:500 });
+  }
 
   // table → OCCUPIED after order (§10)
   if (tableId) {
