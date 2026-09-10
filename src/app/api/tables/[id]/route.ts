@@ -15,7 +15,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!parsed.success) return NextResponse.json({ error:"Invalid", details: parsed.error.flatten() }, { status:400 });
   const dbOk = await isDbAvailable();
   if (!dbOk) return NextResponse.json({ id, ...parsed.data, updatedAt: new Date().toISOString() });
-  // FSM validation (Â§10)
+  // FSM validation (§10)
   if (parsed.data.status) {
     const current = await prisma.table.findUnique({ where:{ id } });
     if (!current) return NextResponse.json({ error:"Table not found" }, { status:404 });

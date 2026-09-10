@@ -62,12 +62,12 @@ export async function POST(req: Request) {
   const effectiveRid = await getEffectiveRestaurantId(session.restaurantId);
   if (order.restaurantId !== effectiveRid) return NextResponse.json({ error:"Order belongs to different restaurant" }, { status:403 });
 
-  // server recomputes totals — never trust client total (Â§13)
+  // server recomputes totals — never trust client total (§13)
   const subtotal = order.subtotal;
   const taxAmount = order.taxAmount;
   const discount = discountAmount ?? order.discountAmount;
 
-  // â”€â”€ Coupon validation server-side (Â§25-26, Â§52) â”€â”€
+  // ── Coupon validation server-side (§25-26, §52) ──
   let couponDiscount = 0;
   let couponRecord: unknown = null;
   if (couponCode) {
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     if (coupon.status !== "ACTIVE") return NextResponse.json({ error:`Coupon ${coupon.code} is ${coupon.status}`, code:"COUPON_INVALID" }, { status:400 });
     if (coupon.expiryDate < new Date()) return NextResponse.json({ error:"Coupon expired", code:"COUPON_EXPIRED" }, { status:400 });
     if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) return NextResponse.json({ error:"Coupon usage limit reached", code:"COUPON_LIMIT" }, { status:400 });
-    // ownership check — if coupon has customerId, only that customer can use (Â§25)
+    // ownership check — if coupon has customerId, only that customer can use (§25)
     if (coupon.customerId && order.customerId && coupon.customerId !== order.customerId) return NextResponse.json({ error:"Coupon does not belong to this customer", code:"COUPON_OWNERSHIP" }, { status:403 });
     const preCouponTotal = subtotal + taxAmount - discount;
     if (preCouponTotal < coupon.minSpend) return NextResponse.json({ error:`Minimum order ₹${coupon.minSpend} required for this coupon`, code:"COUPON_MIN_SPEND" }, { status:400 });
@@ -90,17 +90,17 @@ export async function POST(req: Request) {
     couponRecord = coupon as unknown;
   }
 
-  // â”€â”€ Loyalty redemption validation (Â§25) â”€â”€
+  // ── Loyalty redemption validation (§25) ──
   let loyaltyDiscount = 0;
   if (loyaltyPointsToRedeem && loyaltyPointsToRedeem > 0) {
-    if (!order.customerId) return NextResponse.json({ error:"Walk-in cannot redeem loyalty points (Â§6)", code:"LOYALTY_WALKIN" }, { status:400 });
+    if (!order.customerId) return NextResponse.json({ error:"Walk-in cannot redeem loyalty points (§6)", code:"LOYALTY_WALKIN" }, { status:400 });
     if (order.customerId && couponRecord && (couponRecord as { customerId: string|null })?.customerId && (couponRecord as { customerId: string|null }).customerId !== order.customerId) {
       // already checked
     }
     const cust = await prisma.customer.findUnique({ where:{ id: order.customerId } });
     if (!cust) return NextResponse.json({ error:"Customer not found for loyalty" }, { status:404 });
     if (cust.loyaltyPoints < loyaltyPointsToRedeem) return NextResponse.json({ error:`Insufficient points — available ${cust.loyaltyPoints}`, code:"INSUFFICIENT_POINTS" }, { status:400 });
-    // 1 pt = ₹1 discount (Â§24 points per ₹100 configurable but redeem 1:1 for now)
+    // 1 pt = ₹1 discount (§24 points per ₹100 configurable but redeem 1:1 for now)
     loyaltyDiscount = loyaltyPointsToRedeem;
   }
 

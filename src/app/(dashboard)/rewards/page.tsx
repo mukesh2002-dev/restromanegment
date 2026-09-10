@@ -18,7 +18,10 @@ export default function RewardsPage(){
   const [loyalty,setLoyalty]=useState<LoyaltyTx[]>([]);
   const [msg,setMsg]=useState("");
   const [showCampForm,setShowCampForm]=useState(false);
-  const [campForm,setCampForm]=useState<Partial<Campaign>>({ name:"", minRating:4, rewardType:"PERCENTAGE", rewardValue:40, couponPrefix:"SPICE", couponExpiryDays:30, minSpend:0 });
+  const [campForm,setCampForm]=useState<Partial<Campaign> & { minimumOrderAmount?:number; requiredStars?:number; cardValidityDays?:number; qrValidityHours?:number; maxStarsPerDay?:number; otpRequired?:boolean; feedbackRequired?:boolean; rewardMinimumOrder?:number }>({
+    name:"", minRating:4, rewardType:"PERCENTAGE", rewardValue:40, couponPrefix:"SPICE", couponExpiryDays:30, minSpend:0,
+    minimumOrderAmount:300, requiredStars:4, cardValidityDays:30, qrValidityHours:24, maxStarsPerDay:1, otpRequired:true, feedbackRequired:true, rewardMinimumOrder:300
+  });
   const [redeemCode,setRedeemCode]=useState("SPICE1000");
   const [redeemTotal,setRedeemTotal]=useState(500);
   const [redeemRes,setRedeemRes]=useState("");
@@ -108,22 +111,38 @@ export default function RewardsPage(){
       {tab==="campaigns" && (
         <div className="space-y-4">
           <div className="flex justify-between"><h3 className="font-semibold">Campaigns — thresholds configurable</h3><Button size="sm" onClick={()=> setShowCampForm(v=>!v)}>{showCampForm?"Close":"+ New Campaign"}</Button></div>
-          {showCampForm && <Card><CardHeader><CardTitle className="text-base">New Campaign (not hardcoded)</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">
-            <div><Label>Name*</Label><Input value={campForm.name||""} onChange={e=>setCampForm({...campForm, name:e.target.value})} placeholder="4-Star Reward" /></div>
-            <div><Label>Min Rating (1-5)*</Label><Input type="number" value={campForm.minRating??4} onChange={e=>setCampForm({...campForm, minRating: Number(e.target.value)})} /></div>
+          {showCampForm && <Card><CardHeader><CardTitle className="text-base">New Loyalty Stamp Card Campaign — All Settings Editable</CardTitle><CardDescription>Configure once, no code change needed</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">
+            <div className="md:col-span-3 font-semibold text-sm mt-2">Basic Info</div>
+            <div><Label>Campaign Name*</Label><Input value={campForm.name||""} onChange={e=>setCampForm({...campForm, name:e.target.value})} placeholder="Visit 4 Times & Get 40% OFF" /></div>
+            <div><Label>Status</Label><select value={String((campForm as any).isActive??true)} onChange={e=>setCampForm({...campForm, isActive: e.target.value==="true"})} className="w-full border rounded h-9 px-3 text-sm"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+            <div><Label>Min Rating (1-5)</Label><Input type="number" value={campForm.minRating??4} onChange={e=>setCampForm({...campForm, minRating: Number(e.target.value)})} /></div>
+
+            <div className="md:col-span-3 font-semibold text-sm mt-2">Eligibility & Card</div>
+            <div><Label>Minimum Order Amount ₹*</Label><Input type="number" value={(campForm as any).minimumOrderAmount??300} onChange={e=>setCampForm({...campForm, minimumOrderAmount: Number(e.target.value)})} /></div>
+            <div><Label>Required Stars* (3-10)</Label><Input type="number" value={(campForm as any).requiredStars??4} onChange={e=>setCampForm({...campForm, requiredStars: Number(e.target.value)})} /></div>
+            <div><Label>Card Validity Days*</Label><Input type="number" value={(campForm as any).cardValidityDays??30} onChange={e=>setCampForm({...campForm, cardValidityDays: Number(e.target.value)})} /></div>
+            <div><Label>QR Validity Hours*</Label><Input type="number" value={(campForm as any).qrValidityHours??24} onChange={e=>setCampForm({...campForm, qrValidityHours: Number(e.target.value)})} /></div>
+            <div><Label>Max Stars Per Day*</Label><Input type="number" value={(campForm as any).maxStarsPerDay??1} onChange={e=>setCampForm({...campForm, maxStarsPerDay: Number(e.target.value)})} /></div>
+            <div className="flex items-center gap-2 pt-6"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={(campForm as any).otpRequired??true} onChange={e=>setCampForm({...campForm, otpRequired: e.target.checked})} /> OTP Required</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={(campForm as any).feedbackRequired??true} onChange={e=>setCampForm({...campForm, feedbackRequired: e.target.checked})} /> Feedback Required</label></div>
+
+            <div className="md:col-span-3 font-semibold text-sm mt-2">Reward</div>
             <div><Label>Reward Type*</Label><select value={campForm.rewardType as string} onChange={e=>setCampForm({...campForm, rewardType:e.target.value as Campaign["rewardType"]})} className="w-full border rounded h-9 px-3 text-sm"><option>PERCENTAGE</option><option>FIXED</option><option>FREE_ITEM</option><option>LOYALTY_POINTS</option></select></div>
-            <div><Label>Value* {campForm.rewardType==="PERCENTAGE"?"%":"₹/pts"}</Label><Input type="number" value={campForm.rewardValue??0} onChange={e=>setCampForm({...campForm, rewardValue: Number(e.target.value)})} /></div>
+            <div><Label>Discount % / Value*</Label><Input type="number" value={campForm.rewardValue??0} onChange={e=>setCampForm({...campForm, rewardValue: Number(e.target.value)})} /></div>
+            <div><Label>Maximum Discount ₹</Label><Input type="number" value={(campForm as any).rewardMaxDiscount??200} onChange={e=>setCampForm({...campForm, rewardMaxDiscount: Number(e.target.value)})} /></div>
+            <div><Label>Reward Min Order ₹</Label><Input type="number" value={(campForm as any).rewardMinimumOrder??300} onChange={e=>setCampForm({...campForm, rewardMinimumOrder: Number(e.target.value)})} /></div>
             <div><Label>Coupon Prefix</Label><Input value={campForm.couponPrefix||""} onChange={e=>setCampForm({...campForm, couponPrefix:e.target.value})} /></div>
             <div><Label>Expiry Days</Label><Input type="number" value={campForm.couponExpiryDays??30} onChange={e=>setCampForm({...campForm, couponExpiryDays: Number(e.target.value)})} /></div>
             <div><Label>Min Spend</Label><Input type="number" value={campForm.minSpend??0} onChange={e=>setCampForm({...campForm, minSpend: Number(e.target.value)})} /></div>
             <div><Label>Loyalty Points (if type)</Label><Input type="number" value={campForm.loyaltyPoints??0} onChange={e=>setCampForm({...campForm, loyaltyPoints: Number(e.target.value)})} /></div>
-            <Button onClick={createCampaign} className="md:col-span-2">Create</Button>
+            <Button onClick={createCampaign} className="md:col-span-3">Create Campaign</Button>
           </CardContent></Card>}
           <div className="grid gap-3 md:grid-cols-2">
             {campaigns.map(c=>(
               <Card key={c.id} className={!c.isActive?"opacity-60":""}>
-                <CardHeader className="pb-2"><CardTitle className="text-base flex justify-between"><span>{c.name}</span><Badge className={c.isActive?"bg-green-600 text-white":"bg-zinc-200"}>{c.isActive?"Active":"Inactive"}</Badge></CardTitle><CardDescription>{c.minRating}â˜…+ â†’ {c.rewardType} {c.rewardValue}{c.rewardType==="PERCENTAGE"?"%":""} • {c.couponPrefix}-XXXX • {c.couponExpiryDays}d • minSpend ₹{c.minSpend}</CardDescription></CardHeader>
-                <CardContent className="flex gap-2"><Button size="sm" variant="outline" onClick={()=> toggleCamp(c)}>{c.isActive?"Deactivate":"Activate"}</Button><span className="text-xs text-zinc-500 self-center">/{c.slug} • {c.validFrom? new Date(c.validFrom).toLocaleDateString():""} â†’ {c.validTo? new Date(c.validTo).toLocaleDateString():"âˆž"}</span></CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-base flex justify-between"><span>{c.name}</span><Badge className={c.isActive?"bg-green-600 text-white":"bg-zinc-200"}>{c.isActive?"Active":"Inactive"}</Badge></CardTitle><CardDescription>
+                  {(c as any).requiredStars||4}★ required • Min ₹{(c as any).minimumOrderAmount||c.minSpend||0} • Card {(c as any).cardValidityDays||30}d • QR {(c as any).qrValidityHours||24}h • {c.rewardType} {c.rewardValue}{c.rewardType==="PERCENTAGE"?"%":""} • Max ₹{(c as any).rewardMaxDiscount||0} • {c.couponPrefix}-XXXX • {c.couponExpiryDays}d
+                </CardDescription></CardHeader>
+                <CardContent className="flex gap-2"><Button size="sm" variant="outline" onClick={()=> toggleCamp(c)}>{c.isActive?"Deactivate":"Activate"}</Button><span className="text-xs text-zinc-500 self-center">/{c.slug} • {c.validFrom? new Date(c.validFrom).toLocaleDateString():""} → {c.validTo? new Date(c.validTo).toLocaleDateString():"∞"}</span></CardContent>
               </Card>
             ))}
           </div>

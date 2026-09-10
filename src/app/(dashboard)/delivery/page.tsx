@@ -93,13 +93,13 @@ export default function DeliveryPage(){
                 </div>
                 {o.status==="READY" && (
                   <div className="flex gap-2 pt-2 border-t">
-                    <select value={assign[o.id]||""} onChange={e=> setAssign(prev=> ({...prev, [o.id]: e.target.value}))} className="flex-1 border rounded h-7 text-xs px-2"><option value="">Assign staffâ€¦</option>{staffOptions.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+                    <select value={assign[o.id]||""} onChange={e=> setAssign(prev=> ({...prev, [o.id]: e.target.value}))} className="flex-1 border rounded h-7 text-xs px-2"><option value="">Assign staff…</option>{staffOptions.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}</select>
                     <Button size="sm" className="h-7 text-xs" onClick={()=> advance(o,"OUT_FOR_DELIVERY")}>Dispatch</Button>
                   </div>
                 )}
                 {o.status==="PLACED" && (
                   <div className="flex gap-2 pt-2 border-t">
-                    <select value={assign[o.id]||""} onChange={e=> setAssign(prev=> ({...prev, [o.id]: e.target.value}))} className="flex-1 border rounded h-7 text-xs px-2"><option value="">Assignâ€¦</option>{staffOptions.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+                    <select value={assign[o.id]||""} onChange={e=> setAssign(prev=> ({...prev, [o.id]: e.target.value}))} className="flex-1 border rounded h-7 text-xs px-2"><option value="">Assign…</option>{staffOptions.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}</select>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={()=> assignStaff(o)}>Assign</Button>
                   </div>
                 )}

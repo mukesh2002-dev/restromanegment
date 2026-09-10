@@ -122,7 +122,7 @@ export default function KOTPage(){
         : kots.length===0? <Card className="col-span-full"><CardContent className="p-8 text-center text-sm text-zinc-500">No KOTs for this filter — place an order via POS to generate a KOT (item routing to kitchen).</CardContent></Card> :
           kots.map(k=>{
             const mins=elapsedMin(k.createdAt);
-            const delay= mins>30?"ðŸ”´ >30m delayed": mins>15?"ðŸŸ¡ >15m": mins>8?"•":"";
+            const delay= mins>30?"🍽”´ >30m delayed": mins>15?"🍽Ÿ¡ >15m": mins>8?"•":"";
             return (
               <Card key={k.id} className={`${delayClass(k)} ${k.priority===2?"ring-2 ring-red-300":""} flex flex-col`}>
                 <CardHeader className="pb-2">
@@ -145,7 +145,7 @@ export default function KOTPage(){
                       <div key={it.id} className={`flex gap-2 items-start border rounded p-2 ${it.status==="CANCELLED"?"opacity-50 line-through bg-red-50":"bg-white dark:bg-zinc-900"}`}>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium">{it.name} <span className="text-zinc-500">Ã—{it.quantity}</span> {it.status==="CANCELLED" && <span className="text-red-600 text-xs">CANCELLED</span>}</div>
-                          {it.notes && <div className="text-xs text-amber-700 bg-amber-50 rounded px-1 mt-1">â€œ{it.notes}â€</div>}
+                          {it.notes && <div className="text-xs text-amber-700 bg-amber-50 rounded px-1 mt-1">“{it.notes}”</div>}
                         </div>
                         {it.status!=="CANCELLED" && ["NEW","ACCEPTED","PREPARING"].includes(k.status) && (
                           <div className="shrink-0 flex flex-col gap-1">

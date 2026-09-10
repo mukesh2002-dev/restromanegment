@@ -70,7 +70,7 @@ export default function POSPage() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [payments, setPayments] = useState<PaymentLine[]>([{ method:"CASH", amount:0 }]);
 
-  // customer identification at billing (Â§2-6)
+  // customer identification at billing (§2-6)
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerSearching, setCustomerSearching] = useState(false);
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile|null>(null);
@@ -126,11 +126,18 @@ export default function POSPage() {
   function setPayment(i:number, patch: Partial<PaymentLine>){ setPayments(p=> p.map((x,idx)=> idx===i? {...x, ...patch}:x)); }
   function removePayment(i:number){ setPayments(p=> p.length===1? p: p.filter((_,idx)=> idx!==i)); }
 
-  // â”€â”€ Customer identification (Â§3-6) â”€â”€
+  // ── Customer identification (§3-6) ──
+  function normalizePhone(input: string){
+    const d = input.replace(/\D/g,"");
+    if(d.length===12 && d.startsWith("91")) return d.slice(2);
+    if(d.length===11 && d.startsWith("0")) return d.slice(1);
+    return d;
+  }
   async function searchCustomer(){
-    const phone = customerPhone.trim() || newCustomerForm.phone.trim();
+    const raw = customerPhone.trim() || newCustomerForm.phone.trim();
+    const phone = normalizePhone(raw);
     if(!phone){ setCustomerMsg("Enter 10-digit mobile number"); return; }
-    if(!/^[6-9]\d{9}$/.test(phone)){ setCustomerMsg("Invalid mobile — must be 10 digits starting 6-9"); return; }
+    if(!/^[6-9]\d{9}$/.test(phone)){ setCustomerMsg("Invalid mobile — enter 10 digits starting 6-9 (e.g. 9876543210)"); return; }
     setCustomerSearching(true); setCustomerMsg("");
     try{
       const r = await fetch(`/api/customers?phone=${encodeURIComponent(phone)}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
@@ -146,17 +153,18 @@ export default function POSPage() {
         setCustomerProfile(null);
         setCustomerMode("new");
         setNewCustomerForm(prev=> ({ ...prev, phone }));
-        setCustomerMsg("Customer not found — fill name to create new customer (Â§5)");
+        setCustomerMsg("Customer not found — fill name to create new customer (§5)");
       }
     } catch{ setCustomerMsg("Search failed — try again"); }
     setCustomerSearching(false);
   }
   async function createNewCustomer(){
-    if(!newCustomerForm.name.trim()){ setCustomerMsg("Name is required (Â§5)"); return; }
-    if(!/^[6-9]\d{9}$/.test(newCustomerForm.phone)){ setCustomerMsg("Valid 10-digit mobile required"); return; }
+    if(!newCustomerForm.name.trim()){ setCustomerMsg("Name is required (§5)"); return; }
+    const cleanPhone = normalizePhone(newCustomerForm.phone);
+    if(!/^[6-9]\d{9}$/.test(cleanPhone)){ setCustomerMsg("Valid 10-digit mobile required (e.g. 9876543210)"); return; }
     setCustomerSearching(true); setCustomerMsg("");
     try{
-      const r = await fetch("/api/customers",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ name: newCustomerForm.name.trim(), phone: newCustomerForm.phone.trim(), email: newCustomerForm.email||undefined, birthday: newCustomerForm.birthday||undefined })});
+      const r = await fetch("/api/customers",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ name: newCustomerForm.name.trim(), phone: cleanPhone, email: newCustomerForm.email||undefined, birthday: newCustomerForm.birthday||undefined })});
       const j = await r.json();
       if(!r.ok){ setCustomerMsg(j.error||"Failed to create — may be duplicate"); setCustomerSearching(false); return; }
       setCustomerProfile({ id: j.id, name: j.name, phone: j.phone, email: j.email, birthday: j.birthday, totalVisits:0, totalSpend:0, totalOrders:0, loyaltyPoints:0, availableCoupons:[] });
@@ -169,7 +177,7 @@ export default function POSPage() {
   function continueAsWalkIn(){
     setCustomerProfile(null);
     setCustomerMode("walkin");
-    setCustomerMsg("Walk-in customer — no loyalty/coupons/birthday offers (Â§6)");
+    setCustomerMsg("Walk-in customer — no loyalty/coupons/birthday offers (§6)");
     setCouponCode(""); setCouponDiscount(0); setLoyaltyRedeem(0);
   }
   function clearCustomer(){
@@ -178,7 +186,7 @@ export default function POSPage() {
 
   async function applyCoupon(){
     if(!couponCode.trim()){ setCouponMsg("Enter coupon code"); return; }
-    if(customerMode==="walkin"){ setCouponMsg("Walk-in cannot use coupons (Â§6)"); return; }
+    if(customerMode==="walkin"){ setCouponMsg("Walk-in cannot use coupons (§6)"); return; }
     // verify via coupon redemption validation locally, server will validate at billing too
     try{
       const r = await fetch("/api/coupon-redemptions",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ code: couponCode.trim(), orderTotal: subtotal + tax - discount, customerPhone: customerProfile?.phone }) } as never);
@@ -210,7 +218,7 @@ export default function POSPage() {
     }
   }
 
-  // hold / resume (Â§7)
+  // hold / resume (§7)
   function holdOrder(){
     if(cart.length===0){ setMsg("Cart empty — nothing to hold"); return; }
     const h: HoldOrder = { id: `hold_${Date.now()}`, cart: [...cart], orderType, tableId, notes, discount, createdAt: new Date().toISOString() };
@@ -226,7 +234,7 @@ export default function POSPage() {
   }
   function deleteHold(id:string){ persistHold(holdOrders.filter(x=> x.id!==id)); }
 
-  // normalized payments — fixes Pay Bill not clickable when paidSum stale (Â§15)
+  // normalized payments — fixes Pay Bill not clickable when paidSum stale (§15)
   function getNormalizedPayments(override?: PaymentLine[]): PaymentLine[] {
     const list = override || payments;
     const sum = list.reduce((a,p)=>a+Number(p.amount||0),0);
@@ -279,7 +287,7 @@ export default function POSPage() {
       if(!newCustomerForm.name.trim() || !/^[6-9]\d{9}$/.test(newCustomerForm.phone)){
         const m="Step 3: New customer — Name + 10-digit mobile required"; setMsg(m); setLastError(m); window.scrollTo({top:0, behavior:"smooth"}); return;
       }
-      setMsg("Creating new customer for CRMâ€¦"); setBusy(true);
+      setMsg("Creating new customer for CRM…"); setBusy(true);
       try{
         const cr = await fetch("/api/customers",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ name: newCustomerForm.name.trim(), phone: newCustomerForm.phone.trim(), email: newCustomerForm.email||undefined, birthday: newCustomerForm.birthday||undefined })});
         const cj = await cr.json();
@@ -317,9 +325,18 @@ export default function POSPage() {
       setPayments(activePayments);
       const earn = (bJson as unknown as {loyaltyEarned?:number}).loyaltyEarned || 0;
       const bal = (bJson as unknown as {loyaltyBalanceAfter?:number}).loyaltyBalanceAfter;
-      if(earn) setMsg(`âœ… Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • +${earn} pts (bal ${bal}) • QR ready — saved to CRM`);
-      else setMsg(`âœ… Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • QR ready — saved to CRM ${bJson.totalAmount <100 ? "(₹100+ to earn)" : ""}`);
+      if(earn) setMsg(`✅ Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • +${earn} pts (bal ${bal}) • QR ready — saved to CRM`);
+      else setMsg(`✅ Paid • Bill ${bJson.billNumber} — customer ${customerMode==="found"? customerProfile?.name : effectiveCustomerProfile?.name || customerProfile?.name || "—"} • QR ready — saved to CRM ${bJson.totalAmount <100 ? "(₹100+ to earn)" : ""}`);
       setTimeout(()=> document.getElementById("bill-success")?.scrollIntoView({behavior:"smooth", block:"start"}), 150);
+      // Generate Loyalty QR for stamp card (if eligible)
+      try{
+        const qrRes = await fetch("/api/loyalty/qr", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ orderId: orderId }) });
+        const qrJson = await qrRes.json().catch(()=>null);
+        if(qrRes.ok && qrJson?.secureToken){
+          (bJson as any).loyaltyQrToken = qrJson.secureToken;
+          (bJson as any).loyaltyQrUrl = qrJson.qrUrl;
+        }
+      }catch{}
       // persist for CRM refresh
       try{
         localStorage.setItem("crm_last_bill", JSON.stringify({ billNumber: bJson.billNumber, customerId: bJson.customerId || effectiveCustomerId || "", at: new Date().toISOString() }));
@@ -342,7 +359,7 @@ export default function POSPage() {
     if(cart.length===0){ setMsg("Add at least one item"); return; }
     // DINE_IN table will be auto-selected in createOrderAndBill, so don't block here — just warn
     if(grandTotal <=0){ setMsg("Cart total is 0 — add items"); return; }
-    setRazorPayBusy(true); setMsg("Creating Razorpay orderâ€¦");
+    setRazorPayBusy(true); setMsg("Creating Razorpay order…");
     try{
       const r = await fetch("/api/payments/razorpay/order",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ amount: grandTotal, receipt:`pos_${Date.now()}`, notes:{ customerPhone: customerProfile?.phone || customerPhone || "walkin", orderType } })});
       const j = await r.json();
@@ -354,7 +371,7 @@ export default function POSPage() {
         const v = await fetch("/api/payments/razorpay/verify",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ orderId: j.orderId, paymentId: mockPaymentId, signature: mockSignature, amount: grandTotal })});
         const vj = await v.json();
         if(!v.ok){ setMsg(vj.error||"Mock verify failed"); setRazorPayBusy(false); return; }
-        setMsg(`Razorpay mock verified ₹${grandTotal} — creating billâ€¦`);
+        setMsg(`Razorpay mock verified ₹${grandTotal} — creating bill…`);
         await createOrderAndBill([{ method:"ONLINE", amount: grandTotal, reference: mockPaymentId }]);
         setRazorPayBusy(false);
         return;
@@ -373,7 +390,7 @@ export default function POSPage() {
             const vr = await fetch("/api/payments/razorpay/verify",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ orderId: resp.razorpay_order_id, paymentId: resp.razorpay_payment_id, signature: resp.razorpay_signature, amount: grandTotal })});
             const vj = await vr.json();
             if(!vr.ok){ setMsg(vj.error||"Razorpay verify failed — payment not captured"); setRazorPayBusy(false); return; }
-            setMsg(`Razorpay success ${resp.razorpay_payment_id} — creating billâ€¦`);
+            setMsg(`Razorpay success ${resp.razorpay_payment_id} — creating bill…`);
             await createOrderAndBill([{ method:"ONLINE", amount: grandTotal, reference: resp.razorpay_payment_id }]);
           }catch(e){ setMsg(e instanceof Error? e.message:"Verify error"); }
           setRazorPayBusy(false);
@@ -396,7 +413,21 @@ export default function POSPage() {
     }
   },[tables, orderType, tableId]);
 
-  const categories = [{ id:"ALL", name:"All", slug:"all" }, ...cats];
+  // Fix category typos and deduplicate (handles DB duplicates like Starterss/fruitss/Chines)
+  const categoryTypos: Record<string,string> = { "starterss":"Starters", "fruitss":"Fruits", "chines":"Chinese", "chinesee":"Chinese", "biriyani":"Biryani & Rice", "south indain":"South Indian" };
+  const normalizedCats = (() => {
+    const seen = new Set<string>();
+    const out: {id:string; name:string; slug:string}[] = [];
+    for(const c of cats){
+      const fixedName = categoryTypos[c.name.toLowerCase()] || categoryTypos[c.slug.toLowerCase()] || c.name;
+      const normSlug = fixedName.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+      if(seen.has(normSlug)) continue;
+      seen.add(normSlug);
+      out.push({ ...c, name: fixedName, slug: normSlug });
+    }
+    return out;
+  })();
+  const categories = [{ id:"ALL", name:"All", slug:"all" }, ...normalizedCats];
   const filteredMenu = menu.filter(m=>{
     const catOk = activeCategory==="ALL" || m.categoryId===activeCategory;
     const searchOk = !search || m.name.toLowerCase().includes(search.toLowerCase());
@@ -433,12 +464,12 @@ export default function POSPage() {
           ))}
         </div>
         {(msg || lastError) && (
-          <div className={`text-sm rounded-xl px-3 py-3 whitespace-pre-wrap border font-semibold shadow-sm flex items-start justify-between gap-3 ${msg.startsWith("âœ…") || lastError==="" ?"bg-green-50 border-green-300 text-green-800 dark:bg-green-950/40 dark:border-green-700 dark:text-green-200":"bg-red-50 border-red-300 text-red-800 dark:bg-red-950/40 dark:border-red-700 dark:text-red-200"}`}>
+          <div className={`text-sm rounded-xl px-3 py-3 whitespace-pre-wrap border font-semibold shadow-sm flex items-start justify-between gap-3 ${msg.startsWith("✅") || lastError==="" ?"bg-green-50 border-green-300 text-green-800 dark:bg-green-950/40 dark:border-green-700 dark:text-green-200":"bg-red-50 border-red-300 text-red-800 dark:bg-red-950/40 dark:border-red-700 dark:text-red-200"}`}>
             <span className="flex-1">{msg || lastError}</span>
             <button onClick={()=>{ setMsg(""); setLastError(""); }} className="shrink-0 text-xs underline opacity-70 hover:opacity-100">Dismiss</button>
           </div>
         )}
-        {busy && <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2"><span className="h-3 w-3 border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-white rounded-full animate-spin" /> Processing — please waitâ€¦</div>}
+        {busy && <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2"><span className="h-3 w-3 border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-white rounded-full animate-spin" /> Processing — please wait…</div>}
       </div>
 
       {/* Category + OrderType */}
@@ -488,7 +519,7 @@ export default function POSPage() {
                       <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">₹{m.price}</span>
                       <span className="text-xs text-zinc-500 dark:text-zinc-400">+{m.taxPercent}% • {m.isAvailable?<span className="text-green-600 dark:text-green-400 font-medium">Available</span>:<span className="text-red-500">Out</span>}</span>
                     </div>
-                    {Boolean(m.variants?.length) && <select defaultValue="" onChange={e=>{ if(e.target.value) addToCart(m, e.target.value); e.target.value=""; }} className="w-full border rounded-lg h-8 text-xs px-2 bg-white dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700"><option value="">Variantâ€¦</option>{m.variants!.map(v=><option key={v.id} value={v.id}>{v.name} (+₹{v.priceDelta})</option>)}</select>}
+                    {Boolean(m.variants?.length) && <select defaultValue="" onChange={e=>{ if(e.target.value) addToCart(m, e.target.value); e.target.value=""; }} className="w-full border rounded-lg h-8 text-xs px-2 bg-white dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700"><option value="">Variant…</option>{m.variants!.map(v=><option key={v.id} value={v.id}>{v.name} (+₹{v.priceDelta})</option>)}</select>}
                     {Boolean(m.addOns?.length) && <div className="text-xs space-y-1">{m.addOns!.slice(0,2).map(a=> <label key={a.id} className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300"><input type="checkbox" className="rounded border-zinc-300 dark:border-zinc-600" onChange={e=>{ const checked=e.target.checked; if(checked) addToCart(m, undefined,[a.id]); }} /> {a.name} <span className="text-zinc-500">(+₹{a.price})</span></label>)}</div>}
                     <Button size="sm" className="w-full h-9 text-xs font-semibold rounded-lg shadow-sm disabled:opacity-50" disabled={!m.isAvailable} onClick={()=> addToCart(m)}>+ Add</Button>
                   </div>
@@ -523,7 +554,7 @@ export default function POSPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 p-4">
-              {cart.length===0? <div className="text-sm text-zinc-500 dark:text-zinc-400 border-2 border-dashed dark:border-zinc-700 rounded-xl p-8 text-center bg-zinc-50 dark:bg-zinc-900/50">ðŸ›’ No items — tap menu to add<br/><span className="text-xs">Your cart is empty</span></div> :
+              {cart.length===0? <div className="text-sm text-zinc-500 dark:text-zinc-400 border-2 border-dashed dark:border-zinc-700 rounded-xl p-8 text-center bg-zinc-50 dark:bg-zinc-900/50">🍽›’ No items — tap menu to add<br/><span className="text-xs">Your cart is empty</span></div> :
                 <div className="space-y-2 max-h-[32vh] overflow-auto pr-1">
                   {cart.map(c=>(
                     <div key={c.key} className="flex gap-3 items-start border rounded-xl p-3 bg-white dark:bg-zinc-900 dark:border-zinc-700 shadow-sm">
@@ -554,16 +585,16 @@ export default function POSPage() {
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Input placeholder="10-digit mobile (6-9 start)" value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} className="h-9 pl-9" />
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">ðŸ“±</span>
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">🍽“±</span>
                       </div>
-                      <Button size="sm" onClick={searchCustomer} disabled={customerSearching} className="h-9 px-4 font-semibold">{customerSearching?"Searchingâ€¦":"Search"}</Button>
+                      <Button size="sm" onClick={searchCustomer} disabled={customerSearching} className="h-9 px-4 font-semibold">{customerSearching?"Searching…":"Search"}</Button>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={()=>{ if(customerPhone) setNewCustomerForm(f=>({...f, phone:customerPhone})); setCustomerMode("new"); }} className="h-8 text-xs font-medium flex-1">+ New Customer</Button>
                       <Button size="sm" variant="ghost" onClick={continueAsWalkIn} className="h-8 text-xs flex-1">Walk-in</Button>
                     </div>
                     <div className="flex gap-2 text-xs">
-                      <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">ðŸ“· Scanner: <button onClick={()=> setCustomerPhone("9876543210")} className="underline text-blue-600 dark:text-blue-400">Demo scan</button></span>
+                      <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">🍽“· Scanner: <button onClick={()=> setCustomerPhone("9876543210")} className="underline text-blue-600 dark:text-blue-400">Demo scan</button></span>
                     </div>
                   </div>
                 )}
@@ -662,10 +693,10 @@ export default function POSPage() {
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" onClick={holdOrder} disabled={cart.length===0} type="button" className="h-10 font-semibold rounded-xl">Hold Order</Button>
-                  <Button onClick={()=>createOrderAndBill()} disabled={busy || razorPayBusy || cart.length===0} type="button" className="h-10 font-bold rounded-xl bg-zinc-900 hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-50 shadow-sm">{busy?"Processingâ€¦":"Pay & Bill"}</Button>
+                  <Button onClick={()=>createOrderAndBill()} disabled={busy || razorPayBusy || cart.length===0} type="button" className="h-10 font-bold rounded-xl bg-zinc-900 hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-50 shadow-sm">{busy?"Processing…":"Pay & Bill"}</Button>
                 </div>
                 <Button onClick={handleRazorpayPay} disabled={razorPayBusy || busy || cart.length===0} type="button" className="w-full h-11 bg-[#0a66c2] hover:bg-[#0958a8] dark:bg-[#0a66c2] text-white font-bold rounded-xl shadow-sm disabled:opacity-50" data-testid="razorpay-pay-btn">
-                  {razorPayBusy?"Processingâ€¦":"Pay with Razorpay (UPI / Card / Wallet)"}
+                  {razorPayBusy?"Processing…":"Pay with Razorpay (UPI / Card / Wallet)"}
                 </Button>
                 <Button variant="ghost" className="w-full text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100" onClick={()=>{ setCart([]); setDiscount(0); setCouponDiscount(0); setLoyaltyRedeem(0); setCouponCode(""); }}>Clear Cart</Button>
               </div>
@@ -710,7 +741,7 @@ export default function POSPage() {
           {bill && (
             <Card id="receipt" className="shadow-lg border-zinc-300 dark:border-zinc-700 print:shadow-none overflow-hidden">
               <CardHeader className="bg-zinc-900 text-white dark:bg-zinc-800 border-b-0">
-                <CardTitle className="text-[15px] flex items-center gap-2 text-white">ðŸ§¾ Print-ready Receipt <span className="text-xs bg-white text-zinc-900 px-2.5 py-1 rounded-full font-bold ml-auto">Bill #{bill.billNumber}</span></CardTitle>
+                <CardTitle className="text-[15px] flex items-center gap-2 text-white">🍽§¾ Print-ready Receipt <span className="text-xs bg-white text-zinc-900 px-2.5 py-1 rounded-full font-bold ml-auto">Bill #{bill.billNumber}</span></CardTitle>
                 <CardDescription className="text-zinc-300 dark:text-zinc-400">Order #{order?.orderNumber || bill.orderId.slice(0,8)} • {new Date(bill.paidAt || Date.now()).toLocaleString()} • Table {tables.find(t=>t.id===tableId)?.number || "—"}</CardDescription>
               </CardHeader>
               <CardContent className="p-5 space-y-4 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
@@ -748,7 +779,7 @@ export default function POSPage() {
                   </div>
                 </div>
                 <div className="flex gap-2 print:hidden">
-                  <Button variant="outline" className="flex-1 h-10 font-bold rounded-xl dark:border-zinc-700" onClick={()=> window.print()}>ðŸ–¨ï¸ Print Receipt</Button>
+                  <Button variant="outline" className="flex-1 h-10 font-bold rounded-xl dark:border-zinc-700" onClick={()=> window.print()}>🍽–¨ï¸ Print Receipt</Button>
                   <Button className="flex-1 h-10 font-bold rounded-xl bg-zinc-900 dark:bg-white dark:text-zinc-900" onClick={()=> window.open(`/qr/${bill.qrToken}?billId=${bill.id}`, "_blank")}>Open Review QR</Button>
                 </div>
                 <div className="flex gap-2 print:hidden">

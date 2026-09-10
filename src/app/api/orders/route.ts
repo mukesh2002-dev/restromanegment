@@ -61,15 +61,15 @@ export async function POST(req: Request) {
     return NextResponse.json(order, { status:201 });
   }
 
-  // DB path — table lifecycle & delivery guards (Â§9-10)
-  if (type==="DINE_IN" && !tableId) return NextResponse.json({ error:"Table required for Dine-in (Â§9)" }, { status:400 });
-  if (type==="DELIVERY" && !customerId) return NextResponse.json({ error:"Delivery requires customer (Â§9/37) — search/create customer first" }, { status:400 });
+  // DB path — table lifecycle & delivery guards (§9-10)
+  if (type==="DINE_IN" && !tableId) return NextResponse.json({ error:"Table required for Dine-in (§9)" }, { status:400 });
+  if (type==="DELIVERY" && !customerId) return NextResponse.json({ error:"Delivery requires customer (§9/37) — search/create customer first" }, { status:400 });
   if (type==="DINE_IN" && tableId) {
     const table = await prisma.table.findUnique({ where:{ id: tableId } });
     if (!table) return NextResponse.json({ error:"Table not found" }, { status:404 });
     const effectiveRid = await getEffectiveRestaurantId(session.restaurantId);
   if (table.restaurantId !== effectiveRid) return NextResponse.json({ error:"Table belongs to different restaurant" }, { status:403 });
-    // prevent duplicate active orders on same table (Â§10)
+    // prevent duplicate active orders on same table (§10)
     const activeOrder = await prisma.order.findFirst({ where:{ tableId, status:{ notIn:["COMPLETED","CANCELLED"] } } });
     if (activeOrder) return NextResponse.json({ error:`Table ${table.number} already has active order ${activeOrder.orderNumber} — cannot create duplicate`, code:"TABLE_OCCUPIED" }, { status:409 });
     if (table.status !== "AVAILABLE" && table.status !== "RESERVED") return NextResponse.json({ error:`Table ${table.number} is ${table.status} — must be AVAILABLE/RESERVED`, code:"TABLE_NOT_AVAILABLE" }, { status:400 });
@@ -155,14 +155,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status:500 });
   }
 
-  // table â†’ OCCUPIED after order (Â§10)
+  // table â†’ OCCUPIED after order (§10)
   if (tableId) {
     await prisma.table.update({ where:{ id: tableId }, data:{ status:"OCCUPIED" } }).catch(()=>null);
   }
   // audit
   await prisma.auditLog.create({ data:{ staffId: session.staffId, action:"CREATE_ORDER", entity:"Order", entityId: order.id, details:{ orderNumber, type, totalAmount } } }).catch(()=>null);
 
-  // create KOT for kitchen — prevent duplicate KOT (Â§11)
+  // create KOT for kitchen — prevent duplicate KOT (§11)
   try {
     const existingKot = await prisma.kOT.findFirst({ where:{ orderId: order.id, status:{ in:["NEW","ACCEPTED","PREPARING"] } } });
     if (!existingKot) {

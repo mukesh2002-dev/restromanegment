@@ -63,7 +63,7 @@ export default function TablesPage() {
         <span className="ml-auto text-zinc-500">{tables.length} tables • 30 demo</span>
       </div>
 
-      {loading? <div className="text-sm text-zinc-500">Loadingâ€¦</div> : (
+      {loading? <div className="text-sm text-zinc-500">Loading…</div> : (
         <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-6">
           {tables.map(t=>(
             <Card key={t.id} className="relative">

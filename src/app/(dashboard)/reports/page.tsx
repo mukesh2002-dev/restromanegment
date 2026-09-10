@@ -85,7 +85,7 @@ export default function ReportsPage(){
         {msg && <span className="text-xs text-amber-600">{msg}</span>}
       </CardContent></Card>
 
-      {loading? <div className="text-sm text-zinc-500 p-8 text-center border rounded">Loading reportsâ€¦</div> : !d? <div className="text-sm text-red-600">No data</div> : (
+      {loading? <div className="text-sm text-zinc-500 p-8 text-center border rounded">Loading reports…</div> : !d? <div className="text-sm text-red-600">No data</div> : (
         <>
           <div className="grid gap-4 md:grid-cols-4">
             <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Total Sales</CardTitle></CardHeader><CardContent className="text-2xl font-bold">₹{d.totalSales.toLocaleString("en-IN")}<div className="text-xs font-normal text-zinc-500">{d.orders} orders • Avg ₹{d.avgOrderValue}</div></CardContent></Card>

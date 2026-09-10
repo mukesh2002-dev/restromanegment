@@ -208,7 +208,7 @@ export default function MenuPage() {
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={()=> openEdit(m)} className="h-7 w-7 rounded-full bg-white shadow border flex items-center justify-center hover:bg-zinc-50 text-xs" title="Edit">âœŽ</button>
-                  <button onClick={()=> deleteItem(m)} className="h-7 w-7 rounded-full bg-white shadow border flex items-center justify-center hover:bg-red-50 text-xs text-red-600" title="Delete">ðŸ—‘</button>
+                  <button onClick={()=> deleteItem(m)} className="h-7 w-7 rounded-full bg-white shadow border flex items-center justify-center hover:bg-red-50 text-xs text-red-600" title="Delete">🍽—‘</button>
                 </div>
                 {!m.isAvailable && <div className="absolute inset-0 bg-white/60 flex items-center justify-center"><span className="text-xs font-bold tracking-widest text-zinc-700 border border-zinc-400 px-3 py-1 rounded bg-white">OUT OF STOCK</span></div>}
               </div>

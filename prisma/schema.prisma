@@ -182,6 +182,35 @@ enum CampaignSchedule {
   RECURRING_WEEKLY
 }
 
+enum LoyaltyCardStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+}
+
+enum LoyaltyStampStatus {
+  ACTIVE
+  REVERSED
+  INVALID
+}
+
+enum LoyaltyQrStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
+enum LoyaltyRewardStatus {
+  AVAILABLE
+  RESERVED
+  USED
+  EXPIRED
+  CANCELLED
+}
+
 // ── Core ─────────────────────────────────────────────────────────────────
 model Restaurant {
   id        String   @id @default(cuid())
@@ -195,17 +224,18 @@ model Restaurant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  staff      Staff[]
-  tables     Table[]
-  categories Category[]
-  menuItems  MenuItem[]
-  orders     Order[]
-  bills      Bill[]
-  customers  Customer[]
-  inventory  InventoryItem[]
-  suppliers  Supplier[]
-  campaigns  Campaign[]
-  settings   RestaurantSettings?
+  staff        Staff[]
+  tables       Table[]
+  categories   Category[]
+  menuItems    MenuItem[]
+  orders       Order[]
+  bills        Bill[]
+  customers    Customer[]
+  inventory    InventoryItem[]
+  suppliers    Supplier[]
+  campaigns    Campaign[]
+  settings     RestaurantSettings?
+  loyaltyCards LoyaltyCard[]
 
   @@map("restaurants")
 }
@@ -286,23 +316,23 @@ model Category {
 }
 
 model MenuItem {
-  id           String     @id @default(cuid())
+  id           String      @id @default(cuid())
   restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   categoryId   String
-  category     Category   @relation(fields: [categoryId], references: [id])
+  category     Category    @relation(fields: [categoryId], references: [id])
   name         String
   description  String?
   price        Float
-  taxPercent   Float      @default(5)
-  isVeg        Boolean    @default(true)
-  isAvailable  Boolean    @default(true)
+  taxPercent   Float       @default(5)
+  isVeg        Boolean     @default(true)
+  isAvailable  Boolean     @default(true)
   imageUrl     String?
   servingUnit  ServingUnit @default(PLATE)
-  sku          String?    @unique
-  prepTimeMin  Int?       @default(15)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  sku          String?     @unique
+  prepTimeMin  Int?        @default(15)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   variants    MenuVariant[]
   addOns      MenuAddOn[]
@@ -368,6 +398,9 @@ model Customer {
   deliveryOrders    DeliveryOrder[]
   addresses         Address[]
   couponRedemptions CouponRedemption[]
+  loyaltyCards      LoyaltyCard[]
+  loyaltyStamps     LoyaltyStamp[]
+  loyaltyRewards    LoyaltyReward[]
 
   @@unique([restaurantId, phone])
   @@index([phone])
@@ -396,10 +429,12 @@ model Order {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  items    OrderItem[]
-  bill     Bill?
-  kots     KOT[]
-  payments Payment[]
+  items         OrderItem[]
+  bill          Bill?
+  kots          KOT[]
+  payments      Payment[]
+  loyaltyStamps LoyaltyStamp[]
+  qrTokens      LoyaltyQrToken[]
 
   @@index([restaurantId])
   @@index([status])
@@ -555,11 +590,142 @@ model Campaign {
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
 
-  rewards Reward[]
-  coupons Coupon[]
+  // Loyalty Stamp Card Module - editable settings
+  minimumOrderAmount Float?   @default(300)
+  requiredStars      Int?     @default(4)
+  cardValidityDays   Int?     @default(30)
+  qrValidityHours    Int?     @default(24)
+  maxStarsPerDay     Int?     @default(1)
+  otpRequired        Boolean? @default(true)
+  feedbackRequired   Boolean? @default(true)
+  rewardMinimumOrder Float?   @default(300)
+
+  rewards        Reward[]
+  coupons        Coupon[]
+  loyaltyCards   LoyaltyCard[]
+  loyaltyStamps  LoyaltyStamp[]
+  qrTokens       LoyaltyQrToken[]
+  loyaltyRewards LoyaltyReward[]
 
   @@index([restaurantId])
   @@map("campaigns")
+}
+
+model LoyaltyCard {
+  id            String            @id @default(cuid())
+  customerId    String
+  customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  campaignId    String
+  campaign      Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  restaurantId  String
+  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  status        LoyaltyCardStatus @default(ACTIVE)
+  currentStars  Int               @default(0)
+  requiredStars Int
+  startedAt     DateTime          @default(now())
+  expiresAt     DateTime
+  completedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  stamps  LoyaltyStamp[]
+  rewards LoyaltyReward[]
+
+  @@unique([customerId, campaignId, status])
+  @@index([customerId])
+  @@index([campaignId])
+  @@index([restaurantId])
+  @@index([status])
+  @@map("loyalty_cards")
+}
+
+model LoyaltyStamp {
+  id             String             @id @default(cuid())
+  loyaltyCardId  String
+  loyaltyCard    LoyaltyCard        @relation(fields: [loyaltyCardId], references: [id], onDelete: Cascade)
+  customerId     String
+  customer       Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  campaignId     String
+  campaign       Campaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  orderId        String
+  order          Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stampNumber    Int
+  status         LoyaltyStampStatus @default(ACTIVE)
+  earnedAt       DateTime           @default(now())
+  reversedAt     DateTime?
+  reversalReason String?
+
+  @@unique([orderId, campaignId])
+  @@index([customerId])
+  @@index([campaignId])
+  @@index([loyaltyCardId])
+  @@map("loyalty_stamps")
+}
+
+model LoyaltyQrToken {
+  id               String          @id @default(cuid())
+  orderId          String
+  order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  campaignId       String?
+  campaign         Campaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  secureToken      String          @unique
+  status           LoyaltyQrStatus @default(ACTIVE)
+  expiresAt        DateTime
+  usedAt           DateTime?
+  usedByCustomerId String?
+  createdAt        DateTime        @default(now())
+
+  @@index([orderId])
+  @@index([secureToken])
+  @@index([status])
+  @@map("loyalty_qr_tokens")
+}
+
+model LoyaltyReward {
+  id                    String              @id @default(cuid())
+  customerId            String
+  customer              Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  loyaltyCardId         String?
+  loyaltyCard           LoyaltyCard?        @relation(fields: [loyaltyCardId], references: [id], onDelete: SetNull)
+  campaignId            String
+  campaign              Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  rewardType            RewardType
+  discountPercentage    Float?
+  maximumDiscountAmount Float?
+  minimumOrderAmount    Float?
+  status                LoyaltyRewardStatus @default(AVAILABLE)
+  couponCode            String?             @unique
+  validFrom             DateTime            @default(now())
+  expiresAt             DateTime
+  usedAt                DateTime?
+  usedOrderId           String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([customerId])
+  @@index([campaignId])
+  @@index([status])
+  @@map("loyalty_rewards")
+}
+
+model LoyaltyActivityLog {
+  id            String   @id @default(cuid())
+  customerId    String?
+  campaignId    String?
+  loyaltyCardId String?
+  orderId       String?
+  rewardId      String?
+  action        String
+  oldValue      String?
+  newValue      String?
+  description   String?
+  performedBy   String?
+  createdAt     DateTime @default(now())
+
+  @@index([customerId])
+  @@index([campaignId])
+  @@index([action])
+  @@map("loyalty_activity_logs")
 }
 
 // CRITICAL: One reward per bill enforced via unique(billId)
@@ -796,22 +962,22 @@ model WhatsAppTemplate {
 }
 
 model WhatsAppCampaign {
-  id          String           @id @default(cuid())
-  name        String
-  event       WhatsAppEvent
-  templateId  String
-  template    WhatsAppTemplate @relation(fields: [templateId], references: [id])
-  audience    Json? // { minVisits, minSpend, hasBirthday, consentRequired }
-  schedule    CampaignSchedule @default(IMMEDIATE)
-  scheduledAt DateTime?
-  couponRequired Boolean       @default(false)
-  couponValue  Float?
-  couponPrefix String?         @default("BDAY")
-  isActive    Boolean          @default(true)
-  lastRunAt   DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  logs        WhatsAppLog[]
+  id             String           @id @default(cuid())
+  name           String
+  event          WhatsAppEvent
+  templateId     String
+  template       WhatsAppTemplate @relation(fields: [templateId], references: [id])
+  audience       Json? // { minVisits, minSpend, hasBirthday, consentRequired }
+  schedule       CampaignSchedule @default(IMMEDIATE)
+  scheduledAt    DateTime?
+  couponRequired Boolean          @default(false)
+  couponValue    Float?
+  couponPrefix   String?          @default("BDAY")
+  isActive       Boolean          @default(true)
+  lastRunAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  logs           WhatsAppLog[]
 
   @@index([event])
   @@index([isActive])
@@ -865,15 +1031,15 @@ model LoyaltyAccount {
 
 // ── Coupon Redemption (explicit audit) ─────────────────────────────────────
 model CouponRedemption {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   couponId   String
-  coupon     Coupon   @relation(fields: [couponId], references: [id])
+  coupon     Coupon    @relation(fields: [couponId], references: [id])
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
   billId     String?
-  bill       Bill?    @relation(fields: [billId], references: [id])
+  bill       Bill?     @relation(fields: [billId], references: [id])
   discount   Float
-  redeemedAt DateTime @default(now())
+  redeemedAt DateTime  @default(now())
 
   @@index([couponId])
   @@index([customerId])
@@ -882,7 +1048,7 @@ model CouponRedemption {
 
 // ── Address (customer/delivery) ────────────────────────────────────────────
 model Address {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
   label      String? // HOME, WORK
@@ -891,9 +1057,9 @@ model Address {
   city       String?
   state      String?
   pincode    String?
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isDefault  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([customerId])
   @@map("addresses")

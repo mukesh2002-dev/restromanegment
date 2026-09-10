@@ -53,11 +53,11 @@ export async function GET(req: Request) {
   let restaurantId: string | undefined = session?.restaurantId || undefined;
   if (session?.restaurantId) restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
   else restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
-  // exact phone lookup — POS billing primary path (Â§3)
+  // exact phone lookup — POS billing primary path (§3)
   if (phone) {
     const cust = await prisma.customer.findFirst({ where:{ restaurantId, phone } , include:{ loyaltyAccount:true, coupons:{ where:{ status:"ACTIVE", expiryDate:{ gt: new Date() } } }, _count:{ select:{ bills:true, reviews:true, loyaltyTxs:true } } } });
     if (!cust) return NextResponse.json({ found: false, customer: null });
-    // analytics: paid bills only for visits/spending (Â§19)
+    // analytics: paid bills only for visits/spending (§19)
     const paidBills = await prisma.bill.findMany({ where:{ customerId: cust.id, paymentStatus:"PAID" }, orderBy:{ createdAt:"desc"}, take:5, select:{ billNumber:true, totalAmount:true, createdAt:true } });
     const agg = await prisma.bill.aggregate({ where:{ customerId: cust.id, paymentStatus:"PAID" }, _sum:{ totalAmount:true }, _count:{ _all:true } });
     const lastVisit = paidBills[0]?.createdAt || cust.updatedAt;

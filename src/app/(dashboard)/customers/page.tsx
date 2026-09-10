@@ -90,7 +90,7 @@ export default function CustomersPage(){
       {/* Current / Recent customer — top bar for current data */}
       {recentlyUpdated && (
         <Card className="border-orange-200 bg-orange-50/50">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">ðŸŸ¢ Current / Recent Customer — Live CRM</CardTitle><CardDescription>Most recently updated — after POS bill, refresh to see new entry</CardDescription></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">🍽Ÿ¢ Current / Recent Customer — Live CRM</CardTitle><CardDescription>Most recently updated — after POS bill, refresh to see new entry</CardDescription></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-4 text-sm">
             <div><div className="text-xs text-zinc-500">Name</div><div className="font-bold">{recentlyUpdated.name}</div><div className="text-xs">{recentlyUpdated.phone}</div></div>
             <div><div className="text-xs text-zinc-500">Visits / Spend</div><div className="font-bold">{recentlyUpdated.totalVisits} visits • ₹{Math.round(recentlyUpdated.totalSpend)}</div><div className="text-xs">Points {recentlyUpdated.loyaltyPoints}</div></div>
@@ -129,7 +129,7 @@ export default function CustomersPage(){
             <th className="p-2 cursor-pointer" onClick={()=>{setSortBy("loyaltyPoints"); setSortOrder(o=>o==="asc"?"desc":"asc")}}>Points {sortBy==="loyaltyPoints"? sortOrder==="asc"?"â†‘":"â†“":""}</th>
             <th className="p-2">B/T</th><th className="p-2"></th></tr></thead>
           <tbody>
-            {loading? <tr><td colSpan={7} className="p-6 text-center text-zinc-500">Loadingâ€¦</td></tr> :
+            {loading? <tr><td colSpan={7} className="p-6 text-center text-zinc-500">Loading…</td></tr> :
               sortedList.map(c=>(
                 <tr key={c.id} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800"><td className="p-2 font-medium">{c.name}<div className="text-xs text-zinc-500">{c.email || "—"} {c.birthday?`• ${new Date(c.birthday).toLocaleDateString()}`:""}</div></td><td className="p-2">{c.phone}<div className="text-xs">{c.marketingConsent? <Badge className="bg-green-100 text-green-800 text-[10px]">consent</Badge> : <span className="text-zinc-400">no consent</span>}</div></td><td className="p-2 text-center">{c.totalVisits}</td><td className="p-2 text-center">₹{Math.round(c.totalSpend)}</td><td className="p-2 text-center font-bold text-orange-700">{c.loyaltyPoints}</td><td className="p-2 text-center text-xs">{c._counts? `${c._counts.bills}B/${c._counts.reviews}R`:"—"}</td><td className="p-2"><Button size="sm" variant="outline" onClick={()=> open(c.id)}>Profile</Button></td></tr>
               ))}

@@ -185,7 +185,7 @@ export default function PaymentsReportPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-auto">
-          {loading ? <div className="p-6 text-center text-sm text-zinc-500">Loading transactionsâ€¦</div> : error ? <div className="p-6 text-center text-sm text-red-600">{error}</div> : rows.length === 0 ? <div className="p-8 text-center text-sm text-zinc-500 border border-dashed m-4 rounded">No transactions — try different filters.</div> : (
+          {loading ? <div className="p-6 text-center text-sm text-zinc-500">Loading transactions…</div> : error ? <div className="p-6 text-center text-sm text-red-600">{error}</div> : rows.length === 0 ? <div className="p-8 text-center text-sm text-zinc-500 border border-dashed m-4 rounded">No transactions — try different filters.</div> : (
             <>
               <div className="hidden md:block">
                 <table className="w-full text-sm">
