@@ -566,10 +566,10 @@ export default function POSPage() {
                 <Button variant="outline" onClick={holdOrder} disabled={cart.length===0} type="button">Hold Order</Button>
                 <Button onClick={()=>createOrderAndBill()} disabled={busy || razorPayBusy || cart.length===0} type="button" className="bg-zinc-900 cursor-pointer hover:bg-black disabled:opacity-50">{busy?"Processing…":"Pay & Bill"}</Button>
               </div>
-              <Button onClick={handleRazorpayPay} disabled={razorPayBusy || busy || cart.length===0} type="button" className="w-full bg-[#0a66c2] hover:bg-[#0958a8] text-white cursor-pointer disabled:opacity-50">
-                {razorPayBusy?"Razorpay…":"Pay with Razorpay (UPI / Card / Wallet)"}
+              <Button onClick={handleRazorpayPay} disabled={razorPayBusy || busy || cart.length===0} type="button" className="w-full bg-[#0a66c2] hover:bg-[#0958a8] text-white cursor-pointer disabled:opacity-50" data-testid="razorpay-pay-btn">
+                {razorPayBusy?"Razorpay…":"Pay with Razorpay (UPI / Card / Wallet) — Vercel Fix v2"}
               </Button>
-              <div className="text-[11px] text-zinc-500 text-center">Razorpay Live Test — keys set `rzp_test_Ta2T...` • Use test card 4111 1111 1111 1111</div>
+              <div className="text-[11px] text-zinc-500 text-center">Razorpay Live Test — keys set `rzp_test_Ta2T...` • Use test card 4111 1111 1111 1111 • If not visible, hard refresh (Ctrl+Shift+R)</div>
               <Button variant="ghost" className="w-full text-xs" onClick={()=>{ setCart([]); setDiscount(0); setCouponDiscount(0); setLoyaltyRedeem(0); setCouponCode(""); }}>Clear Cart</Button>
               {order && bill && (
                 <div id="bill-success" className="rounded-xl bg-green-50 border-2 border-green-400 p-4 text-sm space-y-3 scroll-mt-4">
