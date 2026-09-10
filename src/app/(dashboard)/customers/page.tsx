@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { demoCustomers } from "@/data/demo";
+import { PaymentHistory } from "@/components/customers/PaymentHistory";
 
 type Customer = { id:string; name:string; phone:string; email?:string|null; birthday?:string|null; marketingConsent:boolean; totalVisits:number; totalSpend:number; loyaltyPoints:number; createdAt:string; _counts?:{bills:number; reviews:number; loyalty:number; coupons:number} };
 type Detail = Customer & { bills: unknown[]; reviews: unknown[]; loyaltyTxs: unknown[]; coupons: unknown[]; orders: unknown[] };
@@ -16,6 +17,7 @@ export default function CustomersPage(){
   const [total,setTotal]=useState(0);
   const [loading,setLoading]=useState(true);
   const [selected,setSelected]=useState<Detail|null>(null);
+  const [activeTab,setActiveTab]=useState<"overview"|"orders"|"payments"|"loyalty"|"coupons">("overview");
   const [showCreate,setShowCreate]=useState(false);
   const [form,setForm]=useState({ name:"", phone:"", email:"", birthday:"", marketingConsent:false });
   const [sortBy,setSortBy]=useState<"name"|"totalVisits"|"totalSpend"|"loyaltyPoints"|"createdAt">("totalSpend");
@@ -44,7 +46,7 @@ export default function CustomersPage(){
   useEffect(()=>{ const t=setTimeout(load,400); return ()=>clearTimeout(t); },[q]);
 
   async function open(id:string){
-    try{ const r=await fetch(`/api/customers/${id}`); const j=await r.json(); setSelected(j); } catch{ const c=demoCustomers.find(x=>x.id===id) as unknown as Detail; setSelected(c as Detail); }
+    try{ const r=await fetch(`/api/customers/${id}`); const j=await r.json(); setSelected(j); setActiveTab("overview"); } catch{ const c=demoCustomers.find(x=>x.id===id) as unknown as Detail; setSelected(c as Detail); setActiveTab("overview"); }
   }
   async function create(){
     if(!form.name || !form.phone){ alert("Name and phone required"); return; }
@@ -125,27 +127,72 @@ export default function CustomersPage(){
 
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={()=> setSelected(null)}>
-          <Card className="w-full max-w-3xl max-h-[90vh] overflow-auto" onClick={e=>e.stopPropagation()}>
-            <CardHeader><CardTitle>{selected.name} • {selected.phone}</CardTitle><CardDescription>{selected.email || "—"} • Birthday {selected.birthday? new Date(selected.birthday).toLocaleDateString(): "—"} • Visits {selected.totalVisits} • Spend ₹{Math.round(selected.totalSpend)} • Points {selected.loyaltyPoints}</CardDescription></CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <h4 className="font-semibold">Bills (recent)</h4>
-                  <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.bills as unknown as {billNumber?:string; totalAmount?:number; status?:string}[])?.slice(0,10).map((b,i)=><div key={i} className="border-b py-1 flex justify-between"><span>{(b as {billNumber:string}).billNumber || (b as {id:string}).id}</span><span>₹{(b as {totalAmount:number}).totalAmount||0}</span></div>) || <span className="text-zinc-500">—</span>}</div>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Reviews</h4>
-                  <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.reviews as unknown as {rating:number; comment?:string}[])?.map((r,i)=><div key={i} className="border-b py-1">{"★".repeat(r.rating)} {r.comment || ""}</div>) || <span className="text-zinc-500">—</span>}</div>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Loyalty Transactions</h4>
-                  <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.loyaltyTxs as unknown as {points:number; reason?:string; type:string}[])?.map((l,i)=><div key={i} className={`border-b py-1 flex justify-between ${l.points>0?"text-green-600":"text-red-600"}`}><span>{l.type} {l.points>0?`+${l.points}`:l.points}</span><span className="text-zinc-500">{(l as {reason:string}).reason||""}</span></div>) || <span className="text-zinc-500">—</span>}</div>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Coupons</h4>
-                  <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.coupons as unknown as {code:string; status:string; value:number}[])?.map((c,i)=><div key={i} className="border-b py-1 flex justify-between"><span className="font-mono">{c.code}</span><span>{c.status} ₹{c.value}</span></div>) || <span className="text-zinc-500">—</span>}</div>
-                </div>
+          <Card className="w-full max-w-5xl max-h-[92vh] overflow-auto" onClick={e=>e.stopPropagation()}>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+                <span>{selected.name} • {selected.phone}</span>
+                <Badge className="bg-zinc-900 text-white">Visits {selected.totalVisits} • Spend ₹{Math.round(selected.totalSpend)} • Points {selected.loyaltyPoints}</Badge>
+              </CardTitle>
+              <CardDescription>{selected.email || "—"} {selected.email?" • ":""}Birthday {selected.birthday? new Date(selected.birthday).toLocaleDateString(): "—"} • Last Visit {selected.totalVisits? "—" : "—"}</CardDescription>
+              {/* Tabs */}
+              <div className="flex gap-1 overflow-auto pt-3 border-b -mb-2">
+                {[
+                  {id:"overview", label:"Overview"},
+                  {id:"orders", label:"Orders History"},
+                  {id:"payments", label:"Payment History ⭐"},
+                  {id:"loyalty", label:"Loyalty Points"},
+                  {id:"coupons", label:"Coupons Used"},
+                ].map(t=> (
+                  <button key={t.id} onClick={()=> setActiveTab(t.id as never)} className={`px-3 py-2 text-xs font-medium border-b-2 whitespace-nowrap ${activeTab===t.id?"border-zinc-900 text-zinc-900":"border-transparent text-zinc-500 hover:text-zinc-700"}`}>{t.label}</button>
+                ))}
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm pt-4">
+              {activeTab==="overview" && (
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3 text-xs">
+                    <div className="border rounded p-3 bg-zinc-50 dark:bg-zinc-900"><div className="text-zinc-500">Total Visits</div><div className="text-xl font-bold">{selected.totalVisits}</div></div>
+                    <div className="border rounded p-3 bg-green-50"><div className="text-zinc-500">Total Spend</div><div className="text-xl font-bold">₹{Math.round(selected.totalSpend)}</div></div>
+                    <div className="border rounded p-3 bg-orange-50"><div className="text-zinc-500">Loyalty Points</div><div className="text-xl font-bold">{selected.loyaltyPoints}</div></div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <h4 className="font-semibold text-xs mb-2">Recent Bills</h4>
+                      <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.bills as unknown as {billNumber?:string; totalAmount?:number; status?:string}[])?.slice(0,5).map((b,i)=><div key={i} className="border-b py-1 flex justify-between"><span>{(b as {billNumber:string}).billNumber || (b as {id:string}).id}</span><span>₹{(b as {totalAmount:number}).totalAmount||0}</span></div>) || <span className="text-zinc-500">—</span>}</div>
+                      <Button size="sm" variant="ghost" className="text-xs mt-1 p-0 h-6" onClick={()=> setActiveTab("payments")}>View Payment History →</Button>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-xs mb-2">Recent Reviews</h4>
+                      <div className="space-y-1 max-h-40 overflow-auto text-xs">{(selected.reviews as unknown as {rating:number; comment?:string}[])?.map((r,i)=><div key={i} className="border-b py-1">{"★".repeat(r.rating)} {r.comment || ""}</div>) || <span className="text-zinc-500">—</span>}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {activeTab==="orders" && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Orders History</h4>
+                  <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">
+                    {(selected as unknown as {orders?: {orderNumber:string; status:string; totalAmount:number; createdAt:string}[]}).orders?.map((o,i)=>(
+                      <div key={i} className="border rounded p-2 flex justify-between items-center"><span className="font-mono">{o.orderNumber}</span><span>{o.status}</span><span>₹{o.totalAmount}</span><span className="text-zinc-500">{new Date(o.createdAt).toLocaleDateString()}</span></div>
+                    )) || (selected.bills as unknown as {billNumber:string; totalAmount:number; createdAt:string}[])?.slice(0,20).map((b,i)=><div key={i} className="border rounded p-2 flex justify-between"><span className="font-mono">{b.billNumber}</span><span>₹{b.totalAmount}</span><span className="text-zinc-500">{new Date(b.createdAt).toLocaleDateString()}</span></div>) || <span className="text-zinc-500">No orders</span>}
+                  </div>
+                </div>
+              )}
+              {activeTab==="payments" && (
+                <PaymentHistory customerId={selected.id} customerName={selected.name} customerPhone={selected.phone} />
+              )}
+              {activeTab==="loyalty" && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Loyalty Transactions</h4>
+                  <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">{(selected.loyaltyTxs as unknown as {points:number; reason?:string; type:string; createdAt?:string; balanceAfter?:number}[])?.map((l,i)=><div key={i} className={`border rounded p-2 flex justify-between ${l.points>0?"text-green-600":"text-red-600"}`}><span>{l.type} {l.points>0?`+${l.points}`:l.points} • Bal {l.balanceAfter||"—"}</span><span className="text-zinc-500">{(l as {reason:string}).reason||""} {l.createdAt? new Date(l.createdAt).toLocaleDateString():""}</span></div>) || <span className="text-zinc-500">—</span>}</div>
+                </div>
+              )}
+              {activeTab==="coupons" && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Coupons Used</h4>
+                  <div className="space-y-1 max-h-[50vh] overflow-auto text-xs">{(selected.coupons as unknown as {code:string; status:string; value:number; expiryDate?:string; rewardType?:string}[])?.map((c,i)=><div key={i} className="border rounded p-2 flex justify-between"><span className="font-mono">{c.code} • {c.rewardType||""}</span><span>{c.status} ₹{c.value} {c.expiryDate? `• exp ${new Date(c.expiryDate).toLocaleDateString()}`:""}</span></div>) || <span className="text-zinc-500">—</span>}</div>
+                </div>
+              )}
               <Button variant="outline" className="w-full" onClick={()=> setSelected(null)}>Close</Button>
             </CardContent>
           </Card>
