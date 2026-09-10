@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,10 +36,10 @@ export default function WhatsAppPage() {
 
   async function load(){
     const [t,c,l,e]=await Promise.all([
-      fetch("/api/whatsapp/templates").then(r=>r.json()).catch(()=>[]),
-      fetch("/api/whatsapp/campaigns").then(r=>r.json()).catch(()=>[]),
-      fetch("/api/whatsapp/logs?take=20").then(r=>r.json()).catch(()=>[]),
-      fetch("/api/whatsapp/events").then(r=>r.json()).catch(()=>[]),
+      fetch("/api/whatsapp/templates", { cache: 'no-store' }).then(r=>r.json()).catch(()=>[]),
+      fetch("/api/whatsapp/campaigns", { cache: 'no-store' }).then(r=>r.json()).catch(()=>[]),
+      fetch("/api/whatsapp/logs?take=20", { cache: 'no-store' }).then(r=>r.json()).catch(()=>[]),
+      fetch("/api/whatsapp/events", { cache: 'no-store' }).then(r=>r.json()).catch(()=>[]),
     ]);
     if(Array.isArray(t)) setTemplates(t);
     if(Array.isArray(c)) setCampaigns(c);
@@ -76,7 +76,7 @@ export default function WhatsAppPage() {
   async function updateConsent(){
     const r=await fetch("/api/whatsapp/consent",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(consentForm)});
     const j=await r.json();
-    if(r.ok) setConsentRes(`Updated ${j.id} — ${JSON.stringify(j)}`);
+    if(r.ok) setConsentRes(`Updated ${j.id} â€” ${JSON.stringify(j)}`);
     else setConsentRes(j.error||"Failed");
   }
   async function runBirthday(){
@@ -104,12 +104,12 @@ export default function WhatsAppPage() {
             <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Events Supported</CardTitle></CardHeader><CardContent className="text-xs space-y-1">{events.slice(0,9).map(e=> <div key={e.event} className="flex justify-between"><span>{e.event}</span><Badge className="border bg-white text-xs">{e.variables.join(", ")}</Badge></div>)}</CardContent></Card>
             <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Consent Gating</CardTitle></CardHeader><CardContent className="text-xs text-zinc-600">Marketing events (WELCOME, COUPON_ISSUED, BIRTHDAY_OFFER, NEW_OFFER, FEEDBACK_REQUEST) require whatsappOptIn=true. Transactional (BILL_RECEIPT, ORDER_CONFIRMATION, DELIVERY_UPDATE) always allowed. Source + timestamp stored.</CardContent></Card>
           </div>
-          <Card><CardHeader><CardTitle className="text-base">Automation Service</CardTitle><CardDescription>campaign → audience → template → schedule → delivery log • Queued → Sent → Delivered → Failed</CardDescription></CardHeader>
+          <Card><CardHeader><CardTitle className="text-base">Automation Service</CardTitle><CardDescription>campaign â†’ audience â†’ template â†’ schedule â†’ delivery log â€¢ Queued â†’ Sent â†’ Delivered â†’ Failed</CardDescription></CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2 text-sm">
-              <div><div className="font-semibold">Campaigns {campaigns.length}</div><div className="text-xs text-zinc-500">{campaigns.map(c=> `${c.event} ${c.isActive?"✓":"✕"}`).join(" • ")}</div></div>
+              <div><div className="font-semibold">Campaigns {campaigns.length}</div><div className="text-xs text-zinc-500">{campaigns.map(c=> `${c.event} ${c.isActive?"âœ“":"âœ•"}`).join(" â€¢ ")}</div></div>
               <div><div className="font-semibold">Templates {templates.length}</div><div className="text-xs text-zinc-500">{templates.map(t=> t.name).join(", ")}</div></div>
-              <div><div className="font-semibold">Logs {logs.length}</div><div className="text-xs text-zinc-500">{logs.filter(l=>l.status==="SENT").length} sent • {logs.filter(l=>l.status==="FAILED").length} failed</div></div>
-              <div className="text-xs text-zinc-500">Schedule: IMMEDIATE/SCHEDULED/RECURRING_DAILY/WEEKLY • lastRunAt tracked</div>
+              <div><div className="font-semibold">Logs {logs.length}</div><div className="text-xs text-zinc-500">{logs.filter(l=>l.status==="SENT").length} sent â€¢ {logs.filter(l=>l.status==="FAILED").length} failed</div></div>
+              <div className="text-xs text-zinc-500">Schedule: IMMEDIATE/SCHEDULED/RECURRING_DAILY/WEEKLY â€¢ lastRunAt tracked</div>
             </CardContent>
           </Card>
         </div>
@@ -117,7 +117,7 @@ export default function WhatsAppPage() {
 
       {tab==="templates" && (
         <div className="space-y-4">
-          <Card><CardHeader><CardTitle className="text-base">Create Template — variables like {"{{name}}"} </CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">
+          <Card><CardHeader><CardTitle className="text-base">Create Template â€” variables like {"{{name}}"} </CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">
             <div><Label>Name (a-z0-9_)</Label><Input value={newTmpl.name} onChange={e=>setNewTmpl({...newTmpl, name:e.target.value})} placeholder="birthday_offer_v2" /></div>
             <div><Label>Variables (comma)</Label><Input value={newTmpl.variables} onChange={e=>setNewTmpl({...newTmpl, variables:e.target.value})} placeholder="name, coupon, expiry" /></div>
             <div className="md:col-span-2"><Label>Content</Label><Textarea value={newTmpl.content} onChange={e=>setNewTmpl({...newTmpl, content:e.target.value})} placeholder="Hi {{name}}! Happy Birthday {{coupon}}..." rows={3} /></div>
@@ -139,9 +139,9 @@ export default function WhatsAppPage() {
             <Button onClick={createCampaign} className="md:col-span-2">Create Campaign</Button>
           </CardContent></Card>
           <div className="grid gap-3 md:grid-cols-2">
-            {campaigns.map(c=> <Card key={c.id}><CardHeader className="pb-2"><CardTitle className="text-sm">{c.name}</CardTitle><CardDescription>{c.event} • {c.schedule} • {c.isActive?"Active":"Inactive"} • Last {c.lastRunAt? new Date(c.lastRunAt).toLocaleString():"never"}</CardDescription></CardHeader><CardContent className="space-y-2 text-sm">
+            {campaigns.map(c=> <Card key={c.id}><CardHeader className="pb-2"><CardTitle className="text-sm">{c.name}</CardTitle><CardDescription>{c.event} â€¢ {c.schedule} â€¢ {c.isActive?"Active":"Inactive"} â€¢ Last {c.lastRunAt? new Date(c.lastRunAt).toLocaleString():"never"}</CardDescription></CardHeader><CardContent className="space-y-2 text-sm">
               <div>Audience: <span className="text-xs bg-zinc-100 rounded px-1">{JSON.stringify(c.audience||{})}</span></div>
-              <div>Coupon: {c.couponRequired? `Yes ₹${c.couponValue}`:"No"}</div>
+              <div>Coupon: {c.couponRequired? `Yes â‚¹${c.couponValue}`:"No"}</div>
               <div className="flex gap-2"><Button size="sm" onClick={()=> runCampaign(c.id)}>Run Now</Button><Badge>{c.templateId}</Badge></div>
             </CardContent></Card>)}
           </div>
@@ -165,7 +165,7 @@ export default function WhatsAppPage() {
 
       {tab==="birthday" && (
         <div className="space-y-4">
-          <Card><CardHeader><CardTitle>Birthday Automation — eligible today</CardTitle><CardDescription>Checks month/day, consent, generates personalized message + unique coupon if campaign requires, records Queued→Sent→Delivered</CardDescription></CardHeader><CardContent className="space-y-3">
+          <Card><CardHeader><CardTitle>Birthday Automation â€” eligible today</CardTitle><CardDescription>Checks month/day, consent, generates personalized message + unique coupon if campaign requires, records Queuedâ†’Sentâ†’Delivered</CardDescription></CardHeader><CardContent className="space-y-3">
             <Button onClick={runBirthday}>Run Birthday Campaign Now (all active BIRTHDAY_OFFER)</Button>
             {bdayRes && <pre className="text-xs bg-zinc-100 p-3 rounded overflow-auto max-h-80">{bdayRes}</pre>}
             <div className="text-xs text-zinc-500">Mock: generates BDAY-XXXX coupons, logs to WhatsAppLog. In prod, cron at 09:00 daily calls POST /api/whatsapp/birthday-run.</div>
@@ -175,12 +175,12 @@ export default function WhatsAppPage() {
 
       {tab==="logs" && (
         <div className="space-y-3">
-          <div className="flex gap-2"><Button size="sm" variant="outline" onClick={load}>Refresh</Button><span className="text-xs text-zinc-500 self-center">Statuses: Queued → Sent → Delivered → Failed • {logs.length} shown</span></div>
+          <div className="flex gap-2"><Button size="sm" variant="outline" onClick={load}>Refresh</Button><span className="text-xs text-zinc-500 self-center">Statuses: Queued â†’ Sent â†’ Delivered â†’ Failed â€¢ {logs.length} shown</span></div>
           <div className="rounded border bg-white dark:bg-zinc-900 overflow-auto">
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 dark:bg-zinc-800 text-xs"><tr><th className="p-2 text-left">To</th><th>Event</th><th>Status</th><th>Message</th><th>Time</th></tr></thead>
               <tbody>
-                {logs.map(l=> <tr key={l.id} className="border-t"><td className="p-2 font-mono text-xs">{l.toPhone}</td><td className="p-2 text-xs">{l.event||"—"}</td><td className="p-2"><Badge className={l.status==="SENT"?"bg-green-100 text-green-800": l.status==="QUEUED"?"bg-amber-100": l.status==="FAILED"?"bg-red-100 text-red-800":"bg-zinc-100"}>{l.status}</Badge></td><td className="p-2 text-xs max-w-[300px] truncate">{l.message}</td><td className="p-2 text-xs">{new Date(l.createdAt).toLocaleString()}</td></tr>)}
+                {logs.map(l=> <tr key={l.id} className="border-t"><td className="p-2 font-mono text-xs">{l.toPhone}</td><td className="p-2 text-xs">{l.event||"â€”"}</td><td className="p-2"><Badge className={l.status==="SENT"?"bg-green-100 text-green-800": l.status==="QUEUED"?"bg-amber-100": l.status==="FAILED"?"bg-red-100 text-red-800":"bg-zinc-100"}>{l.status}</Badge></td><td className="p-2 text-xs max-w-[300px] truncate">{l.message}</td><td className="p-2 text-xs">{new Date(l.createdAt).toLocaleString()}</td></tr>)}
               </tbody>
             </table>
           </div>
@@ -204,3 +204,4 @@ export default function WhatsAppPage() {
     </div>
   );
 }
+

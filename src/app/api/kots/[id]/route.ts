@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { getKOT, setKOT, updateKOTItem } from "@/lib/kot-store";
@@ -32,10 +34,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id:stri
     kotNumber: kot.kotNumber,
     orderId: kot.orderId,
     orderNumber: kot.order.orderNumber,
-    table: kot.order.table?.number || (kot.order.type as string) || "—",
+    table: kot.order.table?.number || (kot.order.type as string) || "â€”",
     tableId: kot.order.tableId,
     customer: kot.order.customer?.name || "Walk-in",
-    customerPhone: kot.order.customer?.phone || "—",
+    customerPhone: kot.order.customer?.phone || "â€”",
     status: kot.status,
     priority: kot.priority,
     notes: kot.notes,
@@ -82,7 +84,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id:str
     const cur = getKOT(id);
     if (!cur) return NextResponse.json({ error:"Not found" }, { status:404 });
     const allowed = VALID_TRANSITIONS[cur.status] || [];
-    if (!allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} → ${next}. Allowed: ${allowed.join(",")||"none"}` }, { status:400 });
+    if (!allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} â†’ ${next}. Allowed: ${allowed.join(",")||"none"}` }, { status:400 });
     const updated = setKOT(id, { status: next });
     // also cascade to items if moving to ACCEPTED/PREPARING
     if (["ACCEPTED","PREPARING","READY","SERVED","COMPLETED","CANCELLED"].includes(next)) {
@@ -99,7 +101,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id:str
   const cur = await prisma.kOT.findUnique({ where:{ id } });
   if (!cur) return NextResponse.json({ error:"Not found" }, { status:404 });
   const allowed = VALID_TRANSITIONS[cur.status] || [];
-  if (!allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} → ${next}. Allowed: ${allowed.join(",")||"none"}` }, { status:400 });
+  if (!allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} â†’ ${next}. Allowed: ${allowed.join(",")||"none"}` }, { status:400 });
   const updated = await prisma.kOT.update({ where:{ id }, data:{ status: next as never } });
   // cascade status to items
   await prisma.kOTItem.updateMany({ where:{ kotId: id, status: { not:"CANCELLED" } }, data:{ status: next as never } }).catch(()=>null);
@@ -112,3 +114,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id:str
   await prisma.auditLog.create({ data:{ staffId: session.staffId, action:"UPDATE_KOT", entity:"KOT", entityId:id, details:{ from: cur.status, to: next } } }).catch(()=>null);
   return NextResponse.json(updated);
 }
+

@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { automationService } from "@/lib/automation-service";
 import { getSession } from "@/lib/auth";
@@ -11,3 +13,4 @@ export async function POST(req: Request){
   const result=await automationService.runBirthdayCampaign(campaignId);
   return NextResponse.json(result);
 }
+

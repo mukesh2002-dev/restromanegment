@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ export default function TablesPage() {
 
   async function load() {
     setLoading(true);
-    try { const r=await fetch("/api/tables"); const j=await r.json(); setTables(Array.isArray(j)? j: demoTables as unknown as Table[]); } catch { setTables(demoTables as unknown as Table[]); }
+    try { const r=await fetch("/api/tables", { cache: 'no-store' }); const j=await r.json(); setTables(Array.isArray(j)? j: demoTables as unknown as Table[]); } catch { setTables(demoTables as unknown as Table[]); }
     setLoading(false);
   }
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -29,13 +29,13 @@ export default function TablesPage() {
   async function createTable() {
     if(!form.number.trim()){ setMsg("Table number required"); return; }
     const res=await fetch("/api/tables",{ method:"POST", headers:{ "Content-Type":"application/json"}, body: JSON.stringify(form)});
-    if(res.ok){ setShowForm(false); setForm({ number:"", capacity:4, floor:"Ground", area:"Indoor", status:"AVAILABLE"}); setMsg("Table created with unique qrToken"); load(); } else { const j=await res.json(); setMsg(j.error||"Failed — number must be unique per restaurant"); }
+    if(res.ok){ setShowForm(false); setForm({ number:"", capacity:4, floor:"Ground", area:"Indoor", status:"AVAILABLE"}); setMsg("Table created with unique qrToken"); load(); } else { const j=await res.json(); setMsg(j.error||"Failed â€” number must be unique per restaurant"); }
   }
   async function updateStatus(id:string, status: Table["status"]) {
     const prev=tables;
     setTables(t=> t.map(x=> x.id===id? {...x, status}:x));
     const res=await fetch(`/api/tables/${id}`,{ method:"PATCH", headers:{ "Content-Type":"application/json"}, body: JSON.stringify({ status })});
-    if(!res.ok){ setTables(prev); setMsg("Failed to update status"); } else setMsg(`Table ${id} → ${status}`);
+    if(!res.ok){ setTables(prev); setMsg("Failed to update status"); } else setMsg(`Table ${id} â†’ ${status}`);
   }
   async function del(id:string) {
     if(!confirm("Delete table?")) return;
@@ -60,16 +60,16 @@ export default function TablesPage() {
 
       <div className="flex gap-2 text-xs">
         {Object.keys(color).map(s=> <span key={s} className={`px-2 py-1 rounded-full border ${color[s]}`}>{s}</span>)}
-        <span className="ml-auto text-zinc-500">{tables.length} tables • 30 demo</span>
+        <span className="ml-auto text-zinc-500">{tables.length} tables â€¢ 30 demo</span>
       </div>
 
-      {loading? <div className="text-sm text-zinc-500">Loading…</div> : (
+      {loading? <div className="text-sm text-zinc-500">Loadingâ€¦</div> : (
         <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-6">
           {tables.map(t=>(
             <Card key={t.id} className="relative">
               <CardContent className="p-4 space-y-2 text-center">
                 <div className="font-bold text-lg">{t.number}</div>
-                <div className="text-xs text-zinc-500">{t.floor} • {t.area || "—"} • {t.capacity} pax</div>
+                <div className="text-xs text-zinc-500">{t.floor} â€¢ {t.area || "â€”"} â€¢ {t.capacity} pax</div>
                 <Badge className={`border ${color[t.status]}`}>{t.status}</Badge>
                 <select value={t.status} onChange={e=> updateStatus(t.id, e.target.value as Table["status"])} className="w-full border rounded h-7 text-xs px-1">
                   <option>AVAILABLE</option><option>OCCUPIED</option><option>RESERVED</option><option>BILLING</option><option>CLEANING</option>
@@ -78,7 +78,7 @@ export default function TablesPage() {
                 <a href={`/qr/${t.qrToken}`} className="text-xs underline">View QR</a>
                 <div className="flex gap-1 justify-center pt-1">
                   <button onClick={()=> navigator.clipboard?.writeText(t.qrToken)} className="text-[11px] underline">Copy token</button>
-                  <span className="text-zinc-300">•</span>
+                  <span className="text-zinc-300">â€¢</span>
                   <button onClick={()=> del(t.id)} className="text-[11px] text-red-600 underline">Delete</button>
                 </div>
               </CardContent>
@@ -86,7 +86,8 @@ export default function TablesPage() {
           ))}
         </div>
       )}
-      <Card><CardContent className="p-4 text-xs text-zinc-500">QR token is unique per table + per paid bill (Bill.qrToken). Table QR for dine-in ordering; Bill QR for reward — both server-validated. Print-ready via browser print.</CardContent></Card>
+      <Card><CardContent className="p-4 text-xs text-zinc-500">QR token is unique per table + per paid bill (Bill.qrToken). Table QR for dine-in ordering; Bill QR for reward â€” both server-validated. Print-ready via browser print.</CardContent></Card>
     </div>
   );
 }
+

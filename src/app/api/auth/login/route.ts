@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { prisma, isDbAvailable } from "@/lib/db";
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
     }
     if (mapped && password === "password123") {
       const hash = await bcrypt.hash("password123",10);
-      // resolve demo restaurantId to real DB restaurant if available — fixes FK after reseed
+      // resolve demo restaurantId to real DB restaurant if available â€” fixes FK after reseed
       let rid = "rest_1";
       if (dbOk) {
         const real = await prisma.restaurant.findFirst({ select:{ id:true }, orderBy:{ createdAt:"asc" } });
@@ -73,3 +75,4 @@ export async function POST(req: Request) {
   await createSession({ staffId: staff.id, email: staff.email, role: staff.role as never, name: staff.name, restaurantId: staff.restaurantId });
   return NextResponse.json({ success:true, role: staff.role });
 }
+

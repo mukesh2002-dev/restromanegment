@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma, getEffectiveRestaurantId } from "@/lib/db";
 import { demoCustomers, demoBills, demoReviews, demoLoyaltyTx, demoCoupons } from "@/data/demo";
@@ -51,11 +53,11 @@ export async function GET(req: Request) {
   let restaurantId: string | undefined = session?.restaurantId || undefined;
   if (session?.restaurantId) restaurantId = (await getEffectiveRestaurantId(session.restaurantId)) || undefined;
   else restaurantId = (await getEffectiveRestaurantId(null)) || undefined;
-  // exact phone lookup — POS billing primary path (§3)
+  // exact phone lookup â€” POS billing primary path (Â§3)
   if (phone) {
     const cust = await prisma.customer.findFirst({ where:{ restaurantId, phone } , include:{ loyaltyAccount:true, coupons:{ where:{ status:"ACTIVE", expiryDate:{ gt: new Date() } } }, _count:{ select:{ bills:true, reviews:true, loyaltyTxs:true } } } });
     if (!cust) return NextResponse.json({ found: false, customer: null });
-    // analytics: paid bills only for visits/spending (§19)
+    // analytics: paid bills only for visits/spending (Â§19)
     const paidBills = await prisma.bill.findMany({ where:{ customerId: cust.id, paymentStatus:"PAID" }, orderBy:{ createdAt:"desc"}, take:5, select:{ billNumber:true, totalAmount:true, createdAt:true } });
     const agg = await prisma.bill.aggregate({ where:{ customerId: cust.id, paymentStatus:"PAID" }, _sum:{ totalAmount:true }, _count:{ _all:true } });
     const lastVisit = paidBills[0]?.createdAt || cust.updatedAt;
@@ -84,7 +86,7 @@ export async function GET(req: Request) {
     prisma.customer.count({ where }),
     prisma.customer.findMany({ where, orderBy:{ totalSpend:"desc"}, skip:(page-1)*take, take, include:{ _count:{ select:{ bills:true, reviews:true, loyaltyTxs:true, coupons:true } } } }),
   ]);
-  // fallback to demo-ish empty check — if stale restaurant gave 0 but DB has data, return all (POS parity)
+  // fallback to demo-ish empty check â€” if stale restaurant gave 0 but DB has data, return all (POS parity)
   if (total===0 && (await prisma.customer.count())>0) {
     const fallbackWhere: Record<string, unknown> = {};
     if (q) (fallbackWhere as Record<string, unknown>).OR = (where as Record<string, unknown>).OR as unknown;
@@ -104,7 +106,7 @@ export async function POST(req: Request){
   const { name, phone, email, birthday, dateOfBirth, marketingConsent, whatsappOptIn, smsOptIn, emailOptIn } = body || {};
   const dob = birthday || dateOfBirth;
   if (!name || !phone) return NextResponse.json({ error:"name and phone required" }, { status:400 });
-  if (!/^[6-9]\d{9}$/.test(phone)) return NextResponse.json({ error:"Invalid phone — must be 10 digits starting 6-9" }, { status:400 });
+  if (!/^[6-9]\d{9}$/.test(phone)) return NextResponse.json({ error:"Invalid phone â€” must be 10 digits starting 6-9" }, { status:400 });
   if (name.trim().length < 2) return NextResponse.json({ error:"Name must be at least 2 characters" }, { status:400 });
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error:"Invalid email" }, { status:400 });
   const dbOk = await isDbAvailable();
@@ -114,7 +116,7 @@ export async function POST(req: Request){
   }
   try{
     const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
-    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found â€” please re-login" }, { status:400 });
     const created = await prisma.customer.create({ data:{ restaurantId, name: name.trim(), phone, email: email||undefined, birthday: dob? new Date(dob):undefined, marketingConsent: !!marketingConsent, whatsappOptIn: !!whatsappOptIn, smsOptIn: !!smsOptIn, emailOptIn: !!emailOptIn } });
     // also create loyalty account lazily
     await prisma.loyaltyAccount.create({ data:{ customerId: created.id, points:0 } }).catch(()=>null);
@@ -125,3 +127,4 @@ export async function POST(req: Request){
     return NextResponse.json({ error: msg }, { status:500 });
   }
 }
+

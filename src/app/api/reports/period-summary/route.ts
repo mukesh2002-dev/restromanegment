@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma, getEffectiveRestaurantId } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -75,3 +77,4 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ today, week, month, total, byMethod, generatedAt: now.toISOString(), source: "db" });
 }
+

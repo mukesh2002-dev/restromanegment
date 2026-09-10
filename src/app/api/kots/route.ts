@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { listKOTs, addKOT } from "@/lib/kot-store";

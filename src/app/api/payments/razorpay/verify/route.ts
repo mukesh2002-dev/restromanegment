@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
@@ -20,6 +22,7 @@ export async function POST(req: Request) {
   const { orderId, paymentId, signature } = parsed.data;
   const ok = verifyRazorpaySignature(orderId, paymentId, signature);
   if (!ok) return NextResponse.json({ error:"Signature verification failed", code:"SIGNATURE_MISMATCH" }, { status:400 });
-  // success — front-end should now create bill with ONLINE payment + reference
+  // success â€” front-end should now create bill with ONLINE payment + reference
   return NextResponse.json({ verified:true, orderId, paymentId });
 }
+

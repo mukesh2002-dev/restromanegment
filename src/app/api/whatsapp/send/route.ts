@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { sendWhatsApp, type WhatsAppEvent } from "@/lib/whatsapp";
 import { prisma, isDbAvailable } from "@/lib/db";
@@ -25,3 +27,4 @@ export async function POST(req: Request) {
   }
   return NextResponse.json(result);
 }
+

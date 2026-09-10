@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -32,3 +34,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{id:stri
     return NextResponse.json(updated);
   } catch(e: unknown){ return NextResponse.json({ error: e instanceof Error? e.message:"Error"},{status:400}); }
 }
+

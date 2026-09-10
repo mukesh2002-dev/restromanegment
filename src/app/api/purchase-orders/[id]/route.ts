@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { inventoryService } from "@/lib/inventory-service";
@@ -37,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{id:stri
   // simple state machine: DRAFT->ORDERED->RECEIVED->INVOICED, any ->CANCELLED
   const allowed:Record<string,string[]>={ DRAFT:["ORDERED","CANCELLED"], ORDERED:["RECEIVED","CANCELLED"], RECEIVED:["INVOICED"], INVOICED:[], CANCELLED:[] };
   if(next!=="CANCELLED" && !allowed[cur.status]?.includes(next) && cur.status!==next){
-    return NextResponse.json({ error:`Invalid transition ${cur.status} → ${next}`},{status:400});
+    return NextResponse.json({ error:`Invalid transition ${cur.status} â†’ ${next}`},{status:400});
   }
   const data: Record<string,unknown>={ status: next };
   if(next==="ORDERED") data.orderedAt=new Date();
@@ -52,3 +54,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{id:stri
   const updated=await prisma.purchaseOrder.update({ where:{ id }, data: data as never, include:{ items:true, supplier:true } });
   return NextResponse.json(updated);
 }
+

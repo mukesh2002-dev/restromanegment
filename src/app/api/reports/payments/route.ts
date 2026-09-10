@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma, getEffectiveRestaurantId } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -45,7 +47,7 @@ export async function GET(req: Request) {
         orderNumber: b.orderNumber,
         customerId: b.customerId,
         customerName: cust?.name || "Walk-in",
-        customerPhone: cust?.phone || "—",
+        customerPhone: cust?.phone || "â€”",
         totalAmount: b.totalAmount,
         paymentStatus: b.paymentStatus,
         status: b.status,
@@ -154,7 +156,7 @@ export async function GET(req: Request) {
     orderNumber: b.order?.orderNumber || b.orderId.slice(0, 8),
     customerId: b.customerId,
     customerName: b.customer?.name || "Walk-in",
-    customerPhone: b.customer?.phone || "—",
+    customerPhone: b.customer?.phone || "â€”",
     totalAmount: b.totalAmount,
     subtotal: b.subtotal,
     taxAmount: b.taxAmount,
@@ -178,3 +180,4 @@ export async function GET(req: Request) {
     },
   });
 }
+

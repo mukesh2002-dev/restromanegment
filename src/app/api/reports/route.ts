@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { reportsService } from "@/lib/reports-service";
 import { getSession } from "@/lib/auth";
@@ -13,3 +15,4 @@ export async function GET(req: Request){
   const data=await reportsService.getReports({ from, to, channel, campaign });
   return NextResponse.json(data);
 }
+

@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -47,3 +49,4 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{id:st
   await prisma.whatsAppCampaign.delete({ where:{ id }});
   return NextResponse.json({ success:true});
 }
+

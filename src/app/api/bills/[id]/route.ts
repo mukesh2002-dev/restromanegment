@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { prisma, isDbAvailable } from "@/lib/db";
 import { demoBills } from "@/data/demo";
@@ -19,3 +21,4 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
   return NextResponse.json(bill);
 }
+

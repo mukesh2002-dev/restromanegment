@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { rewardClaimSchema } from "@/lib/validators";
 import { prisma, isDbAvailable } from "@/lib/db";
@@ -18,7 +20,7 @@ export async function POST(req: Request) {
 
   // anti-abuse: rate limiting per IP + per bill cooldown
   const rl = checkRateLimit(ip, billId);
-  if (!rl.ok) return NextResponse.json({ error: "Too many requests — please wait", code: rl.code, retryAfter: rl.retryAfter }, { status: 429 });
+  if (!rl.ok) return NextResponse.json({ error: "Too many requests â€” please wait", code: rl.code, retryAfter: rl.retryAfter }, { status: 429 });
 
   const dbOk = await isDbAvailable();
   if (!dbOk) {
@@ -36,11 +38,11 @@ export async function POST(req: Request) {
     // expired token: demo bills expire after 30 days from paidAt
     if (bill.paidAt) {
       const ageDays = (Date.now() - new Date(bill.paidAt).getTime()) / 86400000;
-      if (ageDays > 30) return NextResponse.json({ error:"QR expired — bill older than 30 days", code:"EXPIRED_TOKEN" }, { status:410 });
+      if (ageDays > 30) return NextResponse.json({ error:"QR expired â€” bill older than 30 days", code:"EXPIRED_TOKEN" }, { status:410 });
     }
     if (claimed.has(billId)) return NextResponse.json({ error:"Reward already claimed for this bill", code:"ALREADY_CLAIMED" }, { status:409 });
-    // campaign eligibility — threshold configurable via demoCampaigns
-    if (rating < 4) return NextResponse.json({ error:"Rating too low for reward — feedback saved", code:"NOT_ELIGIBLE", saved: true }, { status:200 });
+    // campaign eligibility â€” threshold configurable via demoCampaigns
+    if (rating < 4) return NextResponse.json({ error:"Rating too low for reward â€” feedback saved", code:"NOT_ELIGIBLE", saved: true }, { status:200 });
     const campaign = demoCampaigns.find(c=> rating >= c.minRating) || demoCampaigns[0];
     claimed.add(billId);
     const coupon = {
@@ -50,10 +52,10 @@ export async function POST(req: Request) {
       expiryDate: new Date(Date.now()+30*86400000).toISOString(),
       billId,
     };
-    return NextResponse.json({ success:true, coupon, message:"Demo mode reward — DB not configured" });
+    return NextResponse.json({ success:true, coupon, message:"Demo mode reward â€” DB not configured" });
   }
 
-  // DB path — real validation
+  // DB path â€” real validation
   try {
     const bill = await prisma.bill.findUnique({ where:{ id: billId }, include:{ reward:true } });
     if (!bill) return NextResponse.json({ error:"Bill not found", code:"BILL_NOT_FOUND" }, { status:404 });
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
     }
     if (bill.paymentStatus !== "PAID") return NextResponse.json({ error:"Bill not paid", code:"NOT_PAID" }, { status:400 });
     if (bill.status !== "PAID") return NextResponse.json({ error:"Bill status not paid", code:"BILL_NOT_PAID" }, { status:400 });
-    if (bill.paidAt && Date.now() - new Date(bill.paidAt).getTime() > 30*86400000) return NextResponse.json({ error:"QR expired — bill older than 30 days", code:"EXPIRED_TOKEN" }, { status:410 });
+    if (bill.paidAt && Date.now() - new Date(bill.paidAt).getTime() > 30*86400000) return NextResponse.json({ error:"QR expired â€” bill older than 30 days", code:"EXPIRED_TOKEN" }, { status:410 });
     if (bill.reward) return NextResponse.json({ error:"Reward already claimed", code:"ALREADY_CLAIMED" }, { status:409 });
 
     const existingReward = await prisma.reward.findUnique({ where:{ billId } });
@@ -157,3 +159,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error:"Failed to claim reward", details: msg }, { status:500 });
   }
 }
+

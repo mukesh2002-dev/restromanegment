@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { demoCoupons } from "@/data/demo";
@@ -48,10 +50,10 @@ export async function POST(req: Request){
     const cust = await prisma.customer.findFirst({ where:{ phone: customerPhone } });
     if (cust && coupon.customerId !== cust.id) return NextResponse.json({ error:"Coupon does not belong to this customer", code:"COUPON_OWNERSHIP" }, { status:403 });
   } else if (coupon.customerId && !customerPhone) {
-    return NextResponse.json({ error:"Coupon is customer-specific — provide mobile", code:"COUPON_OWNERSHIP" }, { status:400 });
+    return NextResponse.json({ error:"Coupon is customer-specific â€” provide mobile", code:"COUPON_OWNERSHIP" }, { status:400 });
   }
   const total = typeof orderTotal==="number" ? orderTotal : 0;
-  if (total < Number(coupon.minSpend)) return NextResponse.json({ error:`Minimum order ₹${coupon.minSpend} required`, code:"COUPON_MIN_SPEND" }, { status:400 });
+  if (total < Number(coupon.minSpend)) return NextResponse.json({ error:`Minimum order â‚¹${coupon.minSpend} required`, code:"COUPON_MIN_SPEND" }, { status:400 });
   let discount = 0;
   if (coupon.rewardType==="PERCENTAGE") {
     discount = Math.round(total * Number(coupon.value)/100);
@@ -62,3 +64,4 @@ export async function POST(req: Request){
   discount = Math.min(discount, total);
   return NextResponse.json({ valid:true, code: coupon.code, discount, coupon });
 }
+

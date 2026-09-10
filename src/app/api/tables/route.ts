@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma, isDbAvailable } from "@/lib/db";
@@ -42,7 +44,7 @@ export async function POST(req: Request) {
   try {
     const { getEffectiveRestaurantId } = await import("@/lib/db");
     const restaurantId = await getEffectiveRestaurantId(session.restaurantId);
-    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found — please re-login" }, { status:400 });
+    if (!restaurantId) return NextResponse.json({ error:"Restaurant not found â€” please re-login" }, { status:400 });
     const created = await prisma.table.create({ data:{ restaurantId, number, capacity, floor, area, status: status as never, qrToken } });
     return NextResponse.json(created, { status:201 });
   } catch (e: unknown) {
@@ -51,3 +53,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status:500 });
   }
 }
+

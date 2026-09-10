@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { deliveryStatusSchema } from "@/lib/validators";
@@ -53,7 +55,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{id:stri
     if(idx===-1) return NextResponse.json({ error:"Not found"},{status:404});
     const cur=store[idx];
     const allowed=VALID[cur.status]||[];
-    if(next && next!==cur.status && !allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} → ${next}. Allowed: ${allowed.join(",")||"none"}`},{status:400});
+    if(next && next!==cur.status && !allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} â†’ ${next}. Allowed: ${allowed.join(",")||"none"}`},{status:400});
     const updated={ ...cur, ...(next?{status:next}:{}), ...(assignedTo!==undefined?{assignedTo: assignedTo||null}:{}), ...(estimatedDeliveryTime?{estimatedDeliveryTime}:{}), updatedAt: new Date().toISOString() } as never;
     store[idx]=updated as never;
     return NextResponse.json(updated);
@@ -63,7 +65,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{id:stri
   const curId=cur.id;
   if(next && next!==cur.status){
     const allowed=VALID[cur.status]||[];
-    if(!allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} → ${next}`},{status:400});
+    if(!allowed.includes(next)) return NextResponse.json({ error:`Invalid transition ${cur.status} â†’ ${next}`},{status:400});
   }
   const data:Record<string,unknown>={};
   if(next) data.status=next;
@@ -73,3 +75,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{id:stri
   await prisma.auditLog.create({ data:{ staffId: session.staffId, action:"UPDATE_DELIVERY", entity:"DeliveryOrder", entityId: curId, details:{ from: cur.status, to: next, assignedTo } as never } }).catch(()=>null);
   return NextResponse.json(updated);
 }
+

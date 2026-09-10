@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { couponRedeemSchema } from "@/lib/validators";
 import { prisma, isDbAvailable } from "@/lib/db";
@@ -34,3 +36,4 @@ export async function POST(req: Request) {
   await prisma.auditLog.create({ data:{ action:"REDEEM_COUPON", entity:"Coupon", entityId: coupon.id, details:{ code, discount } } });
   return NextResponse.json({ success:true, discount, coupon });
 }
+

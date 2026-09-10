@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { demoCoupons } from "@/data/demo";
@@ -20,3 +22,4 @@ export async function GET(req: Request){
   const coupons = await prisma.coupon.findMany({ where, orderBy:{ createdAt:"desc"}, take, include:{ customer:true, campaign:true } });
   return NextResponse.json(coupons);
 }
+

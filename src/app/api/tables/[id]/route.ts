@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma, isDbAvailable } from "@/lib/db";
@@ -13,7 +15,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!parsed.success) return NextResponse.json({ error:"Invalid", details: parsed.error.flatten() }, { status:400 });
   const dbOk = await isDbAvailable();
   if (!dbOk) return NextResponse.json({ id, ...parsed.data, updatedAt: new Date().toISOString() });
-  // FSM validation (§10)
+  // FSM validation (Â§10)
   if (parsed.data.status) {
     const current = await prisma.table.findUnique({ where:{ id } });
     if (!current) return NextResponse.json({ error:"Table not found" }, { status:404 });
@@ -26,7 +28,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     };
     const allowed = validTransitions[current.status] || [];
     if (current.status !== parsed.data.status && !allowed.includes(parsed.data.status as string)) {
-      return NextResponse.json({ error:`Invalid transition ${current.status} → ${parsed.data.status}. Allowed: ${allowed.join(", ")||"none"}`, code:"INVALID_TRANSITION" }, { status:400 });
+      return NextResponse.json({ error:`Invalid transition ${current.status} â†’ ${parsed.data.status}. Allowed: ${allowed.join(", ")||"none"}`, code:"INVALID_TRANSITION" }, { status:400 });
     }
   }
   try {
@@ -61,3 +63,4 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!t) return NextResponse.json({ error:"Not found" }, { status:404 });
   return NextResponse.json(t);
 }
+

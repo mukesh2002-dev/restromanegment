@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { demoLoyaltyTx, demoCustomers } from "@/data/demo";
@@ -45,3 +47,4 @@ export async function POST(req: Request){
   await prisma.auditLog.create({ data:{ staffId: session.staffId, action:`LOYALTY_${type}`, entity:"LoyaltyTransaction", entityId: tx.id, details:{ customerId, points, reason } } }).catch(()=>null);
   return NextResponse.json(tx, { status:201 });
 }
+

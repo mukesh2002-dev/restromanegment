@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma, isDbAvailable } from "@/lib/db";
@@ -59,3 +61,4 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: e instanceof Error? e.message:"Error" }, { status:400 });
   }
 }
+

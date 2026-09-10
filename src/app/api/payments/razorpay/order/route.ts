@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { isDbAvailable } from "@/lib/db";
@@ -32,3 +34,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e instanceof Error? e.message:"Razorpay failed" }, { status: 500 });
   }
 }
+

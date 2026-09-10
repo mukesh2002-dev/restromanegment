@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { isDbAvailable, prisma } from "@/lib/db";
 import { deliveryOrderSchema } from "@/lib/validators";
@@ -41,7 +43,7 @@ export async function GET(req: Request){
     return NextResponse.json(list.slice(0,take));
   }
   const session=await getSession();
-  // delivery management is protected — require session for dashboard
+  // delivery management is protected â€” require session for dashboard
   const where:Record<string,unknown>={};
   if(status && status!=="ALL") (where as Record<string,unknown>).status=status;
   // scope to restaurant if available
@@ -56,7 +58,7 @@ export async function POST(req: Request){
   if(!parsed.success) return NextResponse.json({ error:"Invalid", details: parsed.error.flatten()}, { status:400 });
   const { customerName, customerPhone, customerEmail, address, area, instructions, items, couponCode, paymentMethod } = parsed.data;
 
-  // server must not trust client prices — fetch from menu
+  // server must not trust client prices â€” fetch from menu
   const dbOk=await isDbAvailable();
   let subtotal=0;
   const resolvedItems: { menuItemId:string; name:string; quantity:number; unitPrice:number; totalPrice:number }[] = [];
@@ -105,7 +107,7 @@ export async function POST(req: Request){
       if(!c) return NextResponse.json({ error:"Invalid coupon"},{status:400});
       if(c.status!=="ACTIVE") return NextResponse.json({ error:"Coupon not active"},{status:400});
       if(c.expiryDate < new Date()) return NextResponse.json({ error:"Coupon expired"},{status:400});
-      if(subtotal < c.minSpend) return NextResponse.json({ error:`Min spend ₹${c.minSpend} not met`},{status:400});
+      if(subtotal < c.minSpend) return NextResponse.json({ error:`Min spend â‚¹${c.minSpend} not met`},{status:400});
       let disc=0;
       if(c.rewardType==="PERCENTAGE"){ disc=Math.round(subtotal* c.value/100); if(c.maxDiscount) disc=Math.min(disc,c.maxDiscount); }
       else if(c.rewardType==="FIXED") disc=c.value;
@@ -116,7 +118,7 @@ export async function POST(req: Request){
   const deliveryFee = 40;
   const totalAmount = subtotal + taxAmount + deliveryFee - discountAmount;
 
-  // mock payment — always succeeds in demo, but we record paymentStatus
+  // mock payment â€” always succeeds in demo, but we record paymentStatus
   const pay=await processPayment({ amount: totalAmount, method: paymentMethod||"CASH", couponCode });
   if(!pay.success) return NextResponse.json({ error:"Payment failed", details: pay.error },{status:402});
 
@@ -143,7 +145,7 @@ export async function POST(req: Request){
     getStore().unshift(newOrder as never);
     return NextResponse.json({ ...newOrder, payment: pay, couponApplied }, { status:201 });
   }
-  // DB path — need restaurantId (use first restaurant or session)
+  // DB path â€” need restaurantId (use first restaurant or session)
   let restaurantId: string | null = null;
   const session2=await getSession().catch(()=>null);
   if(session2?.restaurantId) restaurantId=session2.restaurantId;
@@ -171,3 +173,4 @@ export async function POST(req: Request){
   }
   return NextResponse.json({ ...created, payment: pay, couponApplied }, { status:201 });
 }
+

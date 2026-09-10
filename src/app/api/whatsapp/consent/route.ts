@@ -1,3 +1,5 @@
+﻿export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { automationService } from "@/lib/automation-service";
 import { getSession } from "@/lib/auth";
@@ -39,3 +41,4 @@ export async function GET(req: Request){
   const c=await prisma.customer.findUnique({ where:{ id: customerId }, select:{ id:true, phone:true, whatsappOptIn:true, smsOptIn:true, emailOptIn:true, marketingConsent:true, consentTimestamp:true, consentSource:true }});
   return NextResponse.json(c||{ error:"Not found"});
 }
+
