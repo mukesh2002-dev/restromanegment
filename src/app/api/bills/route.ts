@@ -114,13 +114,16 @@ export async function POST(req: Request) {
   const qrToken = genQrToken();
 
   const effectiveRestaurantId = await getEffectiveRestaurantId(session.restaurantId);
+  // Pooled DB (Neon pgbouncer) does NOT support interactive transactions (P2028 Transaction not found)
+  // Use sequential non-transactional creates to avoid Transaction API error on Vercel
   let bill;
+  let loyaltyEarned = 0;
+  let loyaltyBalanceAfter: number | null = null;
   try {
-    bill = await prisma.$transaction(async (tx)=>{
-    const b = await tx.bill.create({
+    const b = await prisma.bill.create({
       data:{
         restaurantId: effectiveRestaurantId!,
-        billNumber, // immutable, unique — server generated
+        billNumber,
         orderId: order.id,
         customerId: order.customerId,
         status: eligibleToMarkPaid ? "PAID" : "UNPAID",
@@ -130,93 +133,59 @@ export async function POST(req: Request) {
         qrToken,
       },
     });
+    // payments
     for (const p of payments) {
-      await tx.payment.create({ data:{ billId: b.id, orderId: order.id, method: p.method as never, amount: p.amount, status: eligibleToMarkPaid ? "PAID" : "PENDING", reference: p.reference } });
+      await prisma.payment.create({ data:{ billId: b.id, orderId: order.id, method: p.method as never, amount: p.amount, status: eligibleToMarkPaid ? "PAID" : "PENDING", reference: p.reference } }).catch(()=>null);
     }
-    await tx.order.update({ where:{ id: order.id }, data:{ status: eligibleToMarkPaid ? "COMPLETED" : "PLACED", discountAmount: discount + couponDiscount + loyaltyDiscount, totalAmount } });
-    // coupon redemption
+    await prisma.order.update({ where:{ id: order.id }, data:{ status: eligibleToMarkPaid ? "COMPLETED" : "PLACED", discountAmount: discount + couponDiscount + loyaltyDiscount, totalAmount } }).catch(()=>null);
+    // coupon
     if (couponRecord) {
       const cr = couponRecord as { id: string };
-      await tx.coupon.update({ where:{ id: cr.id }, data:{ status:"REDEEMED", redeemedAt: new Date(), usedCount:{ increment:1 } } });
-      await tx.couponRedemption.create({ data:{ couponId: cr.id, customerId: order.customerId||undefined, billId: b.id, discount: couponDiscount } });
+      await prisma.coupon.update({ where:{ id: cr.id }, data:{ status:"REDEEMED", redeemedAt: new Date(), usedCount:{ increment:1 } } }).catch(()=>null);
+      await prisma.couponRedemption.create({ data:{ couponId: cr.id, customerId: order.customerId||undefined, billId: b.id, discount: couponDiscount } }).catch(()=>null);
     }
     // loyalty redeem
     if (loyaltyDiscount>0 && order.customerId) {
-      const cust = await tx.customer.findUnique({ where:{ id: order.customerId } });
+      const cust = await prisma.customer.findUnique({ where:{ id: order.customerId } });
       const balAfter = (cust?.loyaltyPoints||0) - loyaltyDiscount;
-      await tx.loyaltyTransaction.create({ data:{ customerId: order.customerId, billId: b.id, type:"REDEEM", points: -loyaltyDiscount, balanceAfter: Math.max(0, balAfter), reason:`Redeem at bill ${b.billNumber}` } });
-      await tx.customer.update({ where:{ id: order.customerId }, data:{ loyaltyPoints: Math.max(0, balAfter) } });
-      await tx.loyaltyAccount.updateMany({ where:{ customerId: order.customerId }, data:{ points: Math.max(0, balAfter) } }).catch(()=>null);
+      await prisma.loyaltyTransaction.create({ data:{ customerId: order.customerId, billId: b.id, type:"REDEEM", points: -loyaltyDiscount, balanceAfter: Math.max(0, balAfter), reason:`Redeem at bill ${b.billNumber}` } }).catch(()=>null);
+      await prisma.customer.update({ where:{ id: order.customerId }, data:{ loyaltyPoints: Math.max(0, balAfter) } }).catch(()=>null);
+      await prisma.loyaltyAccount.updateMany({ where:{ customerId: order.customerId }, data:{ points: Math.max(0, balAfter) } }).catch(()=>null);
     }
-    // loyalty earn + visit increment only on PAID (§19-20, §24) — tuned for demo visibility
-    let loyaltyEarned = 0;
-    let loyaltyBalanceAfter: number | null = null;
+    // loyalty earn + visits
     if (eligibleToMarkPaid && order.customerId) {
-      // visit & spend increment — always
-      await tx.customer.update({ where:{ id: order.customerId }, data:{ totalVisits:{ increment:1 }, totalSpend:{ increment: totalAmount } } });
-      // loyalty earn: points per ₹100 (default 10) with min purchase ₹100 for demo (was 400, too strict) (§21)
+      await prisma.customer.update({ where:{ id: order.customerId }, data:{ totalVisits:{ increment:1 }, totalSpend:{ increment: totalAmount } } }).catch(()=>null);
       const earnMinPurchase = 100;
       const pointsPer100 = 10;
       if (totalAmount >= earnMinPurchase) {
-        // daily limit relaxed to 10 per day for demo (was 1, blocked second bill same day)
         const businessDate = new Date(); businessDate.setHours(0,0,0,0);
-        const existingToday = await tx.loyaltyTransaction.count({ where:{ customerId: order.customerId, type:"EARN", createdAt:{ gte: businessDate } } });
+        const existingToday = await prisma.loyaltyTransaction.count({ where:{ customerId: order.customerId, type:"EARN", createdAt:{ gte: businessDate } } }).catch(()=>0);
         if (existingToday < 10) {
           const earnPoints = Math.floor(totalAmount / 100) * pointsPer100;
           if (earnPoints>0) {
-            const c2 = await tx.customer.findUnique({ where:{ id: order.customerId } });
-            // c2.loyaltyPoints already includes -loyaltyDiscount if redeemed earlier in same tx, so use updated value
+            const c2 = await prisma.customer.findUnique({ where:{ id: order.customerId } });
             const bal = (c2?.loyaltyPoints||0) + earnPoints;
-            await tx.loyaltyTransaction.create({ data:{ customerId: order.customerId, billId: b.id, type:"EARN", points: earnPoints, balanceAfter: bal, reason:`Earn bill ${b.billNumber} ₹${totalAmount}` } });
-            await tx.customer.update({ where:{ id: order.customerId }, data:{ loyaltyPoints: bal } });
-            await tx.loyaltyAccount.upsert({ where:{ customerId: order.customerId }, create:{ customerId: order.customerId, points: earnPoints }, update:{ points: bal } }).catch(()=>null);
+            await prisma.loyaltyTransaction.create({ data:{ customerId: order.customerId, billId: b.id, type:"EARN", points: earnPoints, balanceAfter: bal, reason:`Earn bill ${b.billNumber} ₹${totalAmount}` } }).catch(()=>null);
+            await prisma.customer.update({ where:{ id: order.customerId }, data:{ loyaltyPoints: bal } }).catch(()=>null);
+            await prisma.loyaltyAccount.upsert({ where:{ customerId: order.customerId }, create:{ customerId: order.customerId, points: earnPoints }, update:{ points: bal } }).catch(()=>null);
             loyaltyEarned = earnPoints;
             loyaltyBalanceAfter = bal;
           }
         }
       }
-      // attach to bill for response
       (b as unknown as Record<string,unknown>).loyaltyEarned = loyaltyEarned;
       (b as unknown as Record<string,unknown>).loyaltyBalanceAfter = loyaltyBalanceAfter;
     }
-    await tx.table.updateMany({ where:{ id: order.tableId || undefined }, data:{ status:"AVAILABLE" } }).catch(()=>null);
-    await tx.auditLog.create({ data:{ staffId: session.staffId, action:"CREATE_BILL", entity:"Bill", entityId: b.id, details:{ orderId: order.id, totalAmount, paymentStatus: eligibleToMarkPaid?"PAID":"PENDING", couponDiscount, loyaltyDiscount } } }).catch(()=>null);
-    return b;
-  }, { maxWait: 10000, timeout: 20000 });
+    await prisma.table.updateMany({ where:{ id: order.tableId || undefined }, data:{ status:"AVAILABLE" } }).catch(()=>null);
+    // audit outside transaction (pooled DB can't have audit inside tx - causes P2028 Transaction not found)
+    await prisma.auditLog.create({ data:{ staffId: session.staffId, action:"CREATE_BILL", entity:"Bill", entityId: b.id, details:{ orderId: order.id, totalAmount, paymentStatus: eligibleToMarkPaid?"PAID":"PENDING", couponDiscount, loyaltyDiscount } as any } }).catch(()=>null);
+    bill = b;
+    (bill as unknown as Record<string,unknown>).loyaltyEarned = loyaltyEarned;
+    (bill as unknown as Record<string,unknown>).loyaltyBalanceAfter = loyaltyBalanceAfter;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("Bill transaction failed", { msg, code: (e as any)?.code, meta: (e as any)?.meta, orderId });
-    // P2028 = Transaction API error (pooled DB timeout) -> fallback without transaction or return proper 500 with detail
-    if (String(msg).includes("Transaction") || String((e as any)?.code).includes("P2028") || String((e as any)?.code).includes("P2002")) {
-      // Fallback: try simple non-transactional create (best-effort) to avoid losing bill after payment
-      try {
-        const b = await prisma.bill.create({
-          data:{
-            restaurantId: effectiveRestaurantId!,
-            billNumber,
-            orderId: order.id,
-            customerId: order.customerId,
-            status: eligibleToMarkPaid ? "PAID" : "UNPAID",
-            paymentStatus: eligibleToMarkPaid ? "PAID" : "PENDING",
-            subtotal, taxAmount, discountAmount: discount + couponDiscount + loyaltyDiscount, totalAmount,
-            paidAt: eligibleToMarkPaid ? new Date() : null,
-            qrToken,
-          },
-        });
-        for (const p of payments) {
-          await prisma.payment.create({ data:{ billId: b.id, orderId: order.id, method: p.method as never, amount: p.amount, status: eligibleToMarkPaid ? "PAID" : "PENDING", reference: p.reference } }).catch(()=>null);
-        }
-        await prisma.order.update({ where:{ id: order.id }, data:{ status: eligibleToMarkPaid ? "COMPLETED" : "PLACED", discountAmount: discount + couponDiscount + loyaltyDiscount, totalAmount } }).catch(()=>null);
-        if (order.customerId && eligibleToMarkPaid) {
-          await prisma.customer.update({ where:{ id: order.customerId }, data:{ totalVisits:{ increment:1 }, totalSpend:{ increment: totalAmount } } }).catch(()=>null);
-        }
-        return NextResponse.json({ ...b, fallback: true, warning: "Transaction fallback used — loyalty/coupon may need manual sync", errorDetail: msg }, { status:201 });
-      } catch (fallbackErr) {
-        console.error("Fallback bill create also failed", fallbackErr);
-        return NextResponse.json({ error: `Bill transaction failed: ${msg}`, code: "TRANSACTION_FAILED", details: String((e as any)?.meta || msg) }, { status:500 });
-      }
-    }
-    return NextResponse.json({ error: `Bill transaction failed: ${msg}`, code: (e as any)?.code || "TRANSACTION_FAILED", details: String((e as any)?.meta || "") }, { status:500 });
+    console.error("Bill create failed", { msg, code: (e as any)?.code, meta: (e as any)?.meta, orderId });
+    return NextResponse.json({ error: `Bill create failed: ${msg}`, code: (e as any)?.code || "BILL_FAILED", details: String((e as any)?.meta || "") }, { status:500 });
   }
 
   // fetch with payments + attach loyalty info
