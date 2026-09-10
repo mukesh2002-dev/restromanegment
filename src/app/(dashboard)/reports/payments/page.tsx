@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { PeriodSummary } from "@/components/dashboard/PeriodSummary";
 
 type Row = {
   id: string;
@@ -124,11 +125,15 @@ export default function PaymentsReportPage() {
         <h1 className="text-2xl font-bold">Payments / Transactions</h1>
         <div className="flex gap-2 text-xs">
           <Link href="/reports" className="underline">← Reports</Link>
+          <Link href="/dashboard" className="underline">Dashboard →</Link>
           <Link href="/customers" className="underline">CRM → Customers</Link>
         </div>
       </div>
 
-      {/* Summary */}
+      {/* Period Summary — Aaj / Week / Month / Total */}
+      <PeriodSummary />
+
+      {/* Filtered Summary */}
       {summary && (
         <div className="grid gap-3 md:grid-cols-4">
           <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-zinc-500">Total Bills</CardTitle></CardHeader><CardContent className="text-xl font-bold">{summary.totalBills}</CardContent></Card>

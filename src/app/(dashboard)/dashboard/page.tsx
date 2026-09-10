@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats } from "@/data/demo";
 import { formatCurrency } from "@/lib/utils";
+import { PeriodSummary } from "@/components/dashboard/PeriodSummary";
 
 export default function DashboardPage() {
   const s = getDashboardStats();
@@ -23,6 +24,8 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <Badge>{new Date().toLocaleDateString("en-IN", { dateStyle:"long"})}</Badge>
       </div>
+      {/* Period Summary — Aaj / Is Week / Is Month / Total */}
+      <PeriodSummary />
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
         {items.map(i=>(
           <Card key={i.label} className={i.alert ? "border-amber-300 bg-amber-50 dark:bg-amber-950/30" : ""}>
