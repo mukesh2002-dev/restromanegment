@@ -137,10 +137,24 @@ export default function QRPage() {
           {step===5 && result?.ok && (
             <div className="text-center space-y-3">
               <div className="text-4xl">🎉</div>
-              <div className="font-bold text-lg text-green-700">Thank you, {form.name}!</div>
-              <div className="text-sm">{result.msg}</div>
-              {result.coupon && <div className="border-2 border-dashed border-green-300 rounded p-3 bg-green-50"><div className="font-mono text-lg font-bold">{result.coupon.code}</div><div className="text-sm">{result.coupon.value}% off • valid until {new Date(result.coupon.expiryDate).toLocaleDateString()}</div></div>}
-              <div className="text-xs text-zinc-500">Coupon linked to bill {billInfo?.billNumber} • one per bill • share only with phone {form.phone}</div>
+              <div className="font-bold text-lg text-green-700 dark:text-green-300">Thank you, {form.name}!</div>
+              <div className="text-sm text-zinc-700 dark:text-zinc-300">{result.msg} — 50% off coupon ready!</div>
+              {result.coupon && (
+                <div className="border-2 border-dashed border-green-400 dark:border-green-600 rounded-xl p-4 bg-green-50 dark:bg-green-950/30 shadow-sm">
+                  <div className="font-mono text-xl font-black tracking-wider text-green-800 dark:text-green-200 select-all">{result.coupon.code}</div>
+                  <div className="text-sm font-bold text-green-700 dark:text-green-300 mt-1">{result.coupon.value}% off • valid until {new Date(result.coupon.expiryDate).toLocaleDateString("en-IN")}</div>
+                  <div className="text-[11px] text-green-600 dark:text-green-400 mt-1">Auto-copied to clipboard — paste at POS billing</div>
+                  <div className="flex gap-2 mt-3 justify-center">
+                    <Button size="sm" variant="outline" className="h-8 font-semibold" onClick={async()=>{ try{ await navigator.clipboard.writeText(result.coupon!.code); alert("Coupon copied: "+result.coupon!.code);}catch{} }}>Copy Code</Button>
+                    <Button size="sm" className="h-8 font-bold" onClick={()=> window.open(`/order?coupon=${encodeURIComponent(result.coupon!.code)}`, "_blank")}>Order Again & Apply →</Button>
+                  </div>
+                </div>
+              )}
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900 border dark:border-zinc-700 rounded-lg p-2.5">Coupon linked to bill {billInfo?.billNumber} • one per bill • share only with phone {form.phone}<br/>Next step: Show this code at counter / enter in POS → Coupon code → Apply → 50% off</div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-9" onClick={()=> window.print()}>Print Coupon</Button>
+                <Button variant="ghost" className="flex-1 h-9" onClick={()=> setStep(1)}>Rate Another Bill</Button>
+              </div>
             </div>
           )}
           {result && !result.ok && step>=4 && <div className="text-xs text-zinc-500 pt-2">Anti-abuse: duplicate scans → ALREADY_CLAIMED, IP logged, rate-limited, expired QR rejected.</div>}
