@@ -13,7 +13,7 @@ type Summary = {
 };
 
 function methodLabel(m: string) {
-  const map: Record<string, string> = { CASH: "नकद", UPI: "UPI", CARD: "कार्ड", ONLINE: "Online", WALLET: "Wallet" };
+  const map: Record<string, string> = { CASH: "Cash", UPI: "UPI", CARD: "Card", ONLINE: "Online", WALLET: "Wallet" };
   return map[m] || m;
 }
 
@@ -40,10 +40,10 @@ export function PeriodSummary() {
   if (!data) return null;
 
   const cards = [
-    { label: "Aaj (Today)", icon: "आज", p: data.today, desc: "Aaj total orders", color: "border-green-200 bg-green-50/50", href: "/reports/payments" },
-    { label: "Is Week", icon: "सप्ताह", p: data.week, desc: "Mon se aaj tak", color: "border-blue-200 bg-blue-50/50", href: "/reports/payments" },
-    { label: "Is Month", icon: "माह", p: data.month, desc: "1st se aaj tak", color: "border-orange-200 bg-orange-50/50", href: "/reports/payments" },
-    { label: "Total (All Time)", icon: "कुल", p: data.total, desc: "Total payment history", color: "border-zinc-200 bg-zinc-50", href: "/reports/payments" },
+    { label: "Today", icon: "Today", p: data.today, desc: "Today total orders", color: "border-green-200 bg-green-50/50", href: "/reports/payments" },
+    { label: "This Week", icon: "Week", p: data.week, desc: "Mon to today", color: "border-blue-200 bg-blue-50/50", href: "/reports/payments" },
+    { label: "This Month", icon: "Month", p: data.month, desc: "1st to today", color: "border-orange-200 bg-orange-50/50", href: "/reports/payments" },
+    { label: "Total (All Time)", icon: "Total", p: data.total, desc: "Total payment history", color: "border-zinc-200 bg-zinc-50", href: "/reports/payments" },
   ];
 
   return (

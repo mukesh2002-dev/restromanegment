@@ -26,7 +26,7 @@ type Row = {
 };
 
 function methodLabel(m: string) {
-  const map: Record<string, string> = { CASH: "नकद", UPI: "UPI", CARD: "कार्ड", ONLINE: "Online", WALLET: "Wallet", SPLIT: "Split" };
+  const map: Record<string, string> = { CASH: "Cash", UPI: "UPI", CARD: "Card", ONLINE: "Online", WALLET: "Wallet", SPLIT: "Split" };
   return map[m] || m;
 }
 function methodIcon(m: string) { return methodLabel(m); }
