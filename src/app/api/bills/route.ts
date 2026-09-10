@@ -114,7 +114,9 @@ export async function POST(req: Request) {
   const qrToken = genQrToken();
 
   const effectiveRestaurantId = await getEffectiveRestaurantId(session.restaurantId);
-  const bill = await prisma.$transaction(async (tx)=>{
+  let bill;
+  try {
+    bill = await prisma.$transaction(async (tx)=>{
     const b = await tx.bill.create({
       data:{
         restaurantId: effectiveRestaurantId!,
@@ -180,7 +182,42 @@ export async function POST(req: Request) {
     await tx.table.updateMany({ where:{ id: order.tableId || undefined }, data:{ status:"AVAILABLE" } }).catch(()=>null);
     await tx.auditLog.create({ data:{ staffId: session.staffId, action:"CREATE_BILL", entity:"Bill", entityId: b.id, details:{ orderId: order.id, totalAmount, paymentStatus: eligibleToMarkPaid?"PAID":"PENDING", couponDiscount, loyaltyDiscount } } }).catch(()=>null);
     return b;
-  });
+  }, { maxWait: 10000, timeout: 20000 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Bill transaction failed", { msg, code: (e as any)?.code, meta: (e as any)?.meta, orderId });
+    // P2028 = Transaction API error (pooled DB timeout) -> fallback without transaction or return proper 500 with detail
+    if (String(msg).includes("Transaction") || String((e as any)?.code).includes("P2028") || String((e as any)?.code).includes("P2002")) {
+      // Fallback: try simple non-transactional create (best-effort) to avoid losing bill after payment
+      try {
+        const b = await prisma.bill.create({
+          data:{
+            restaurantId: effectiveRestaurantId!,
+            billNumber,
+            orderId: order.id,
+            customerId: order.customerId,
+            status: eligibleToMarkPaid ? "PAID" : "UNPAID",
+            paymentStatus: eligibleToMarkPaid ? "PAID" : "PENDING",
+            subtotal, taxAmount, discountAmount: discount + couponDiscount + loyaltyDiscount, totalAmount,
+            paidAt: eligibleToMarkPaid ? new Date() : null,
+            qrToken,
+          },
+        });
+        for (const p of payments) {
+          await prisma.payment.create({ data:{ billId: b.id, orderId: order.id, method: p.method as never, amount: p.amount, status: eligibleToMarkPaid ? "PAID" : "PENDING", reference: p.reference } }).catch(()=>null);
+        }
+        await prisma.order.update({ where:{ id: order.id }, data:{ status: eligibleToMarkPaid ? "COMPLETED" : "PLACED", discountAmount: discount + couponDiscount + loyaltyDiscount, totalAmount } }).catch(()=>null);
+        if (order.customerId && eligibleToMarkPaid) {
+          await prisma.customer.update({ where:{ id: order.customerId }, data:{ totalVisits:{ increment:1 }, totalSpend:{ increment: totalAmount } } }).catch(()=>null);
+        }
+        return NextResponse.json({ ...b, fallback: true, warning: "Transaction fallback used — loyalty/coupon may need manual sync", errorDetail: msg }, { status:201 });
+      } catch (fallbackErr) {
+        console.error("Fallback bill create also failed", fallbackErr);
+        return NextResponse.json({ error: `Bill transaction failed: ${msg}`, code: "TRANSACTION_FAILED", details: String((e as any)?.meta || msg) }, { status:500 });
+      }
+    }
+    return NextResponse.json({ error: `Bill transaction failed: ${msg}`, code: (e as any)?.code || "TRANSACTION_FAILED", details: String((e as any)?.meta || "") }, { status:500 });
+  }
 
   // fetch with payments + attach loyalty info
   const full = await prisma.bill.findUnique({ where:{ id: bill.id }, include:{ payments:true, order:true } });
