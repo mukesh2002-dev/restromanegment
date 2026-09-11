@@ -227,7 +227,7 @@ async function main() {
     if (batchStart % 100 === 0) console.log(`  orders ${batchStart}-${batchEnd} done`);
   }
 
-  // campaigns
+  // campaigns - including Loyalty Stamp Card 5★
   await prisma.campaign.upsert({
     where: { slug: "4-star" },
     update: {},
@@ -237,6 +237,31 @@ async function main() {
     where: { slug: "5-star" },
     update: {},
     create: { restaurantId: rest.id, name: "5-Star Reward", slug: "5-star", minRating: 5, rewardType: "PERCENTAGE", rewardValue: 50, couponPrefix: "SPICE50", couponExpiryDays: 30 },
+  });
+  await prisma.campaign.upsert({
+    where: { slug: "loyalty-stamp-5" },
+    update: {},
+    create: {
+      restaurantId: rest.id,
+      name: "Visit 5 Times & Get 40% OFF",
+      slug: "loyalty-stamp-5",
+      description: "Earn 1 star per eligible visit (Min ₹300). 5 stars = 40% off (Max ₹200). Card valid 30 days, QR 24h, 1 star/day.",
+      isActive: true,
+      minRating: 4,
+      rewardType: "PERCENTAGE",
+      rewardValue: 40,
+      rewardMaxDiscount: 200,
+      minimumOrderAmount: 300,
+      requiredStars: 5,
+      cardValidityDays: 30,
+      qrValidityHours: 24,
+      maxStarsPerDay: 1,
+      otpRequired: true,
+      feedbackRequired: true,
+      rewardMinimumOrder: 300,
+      couponPrefix: "LOYAL40",
+      couponExpiryDays: 15,
+    },
   });
 
   // Inventory suppliers

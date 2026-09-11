@@ -155,10 +155,21 @@ export default function LoyaltyClaimPage(){
             <div className="text-center space-y-3">
               <div className="text-3xl">⭐</div>
               <div className="font-bold text-green-700 dark:text-green-300">Stamp Added!</div>
-              <div className="border-2 border-dashed rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20">
-                <div className="font-mono text-lg">{"⭐".repeat(result.card.currentStars)} {"☆".repeat(result.card.requiredStars - result.card.currentStars)}</div>
-                <div className="text-sm font-bold">{result.card.currentStars} / {result.card.requiredStars} Stamps</div>
-                <div className="text-xs mt-1">{result.card.currentStars < result.card.requiredStars ? `Complete ${result.card.requiredStars - result.card.currentStars} More Visit To Get 🎁 ${result.card.campaign?.rewardValue || 40}% OFF` : "COMPLETED 🎉"}</div>
+              <div className="border-2 border-dashed rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 text-center">
+                <div className="flex justify-center gap-1 text-2xl">
+                  {Array.from({length: result.card.requiredStars}).map((_,i)=>(
+                    <span key={i} className={i < result.card.currentStars ? "text-amber-500" : "text-zinc-300 dark:text-zinc-600"}>⭐</span>
+                  ))}
+                </div>
+                <div className="font-mono text-sm font-bold mt-2">{result.card.currentStars} / {result.card.requiredStars} Stamps</div>
+                <div className="text-xs font-medium mt-1">
+                  {result.card.currentStars === 1 && result.card.requiredStars===5 && "1 visit → 1 star ⭐"}
+                  {result.card.currentStars === 2 && result.card.requiredStars===5 && "2 visits → 2 stars ⭐⭐"}
+                  {result.card.currentStars === 3 && result.card.requiredStars===5 && "3 visits → 3 stars ⭐⭐⭐"}
+                  {result.card.currentStars === 4 && result.card.requiredStars===5 && "4 visits → 4 stars ⭐⭐⭐⭐"}
+                  {result.card.currentStars === 5 && "5 visits → 5 stars ⭐⭐⭐⭐⭐"}
+                </div>
+                <div className="text-xs mt-1">{result.card.currentStars < result.card.requiredStars ? `Complete ${result.card.requiredStars - result.card.currentStars} More Visit To Get 🎁 ${result.card.campaign?.rewardValue || 40}% OFF` : "COMPLETED 🎉 — Congratulations! 40% OFF Unlocked"}</div>
                 <div className="text-xs text-zinc-500 mt-1">Valid Until: {new Date(result.card.expiresAt).toLocaleDateString()}</div>
               </div>
               {result.reward && (
