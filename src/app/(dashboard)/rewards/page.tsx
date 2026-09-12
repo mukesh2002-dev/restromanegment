@@ -19,8 +19,8 @@ export default function RewardsPage(){
   const [msg,setMsg]=useState("");
   const [showCampForm,setShowCampForm]=useState(false);
   const [campForm,setCampForm]=useState<Partial<Campaign> & { minimumOrderAmount?:number; requiredStars?:number; cardValidityDays?:number; qrValidityHours?:number; maxStarsPerDay?:number; otpRequired?:boolean; feedbackRequired?:boolean; rewardMinimumOrder?:number }>({
-    name:"", minRating:4, rewardType:"PERCENTAGE", rewardValue:40, couponPrefix:"SPICE40", couponExpiryDays:15, minSpend:0,
-    minimumOrderAmount:300, requiredStars:5, cardValidityDays:30, qrValidityHours:24, maxStarsPerDay:1, otpRequired:true, feedbackRequired:true, rewardMinimumOrder:300
+    name:"", minRating:4, rewardType:"PERCENTAGE", rewardValue:40, couponPrefix:"LOYAL40", couponExpiryDays:15, minSpend:0,
+    minimumOrderAmount:300, requiredStars:4, cardValidityDays:30, qrValidityHours:24, maxStarsPerDay:1, otpRequired:true, feedbackRequired:true, rewardMinimumOrder:300
   });
   const [redeemCode,setRedeemCode]=useState("SPICE1000");
   const [redeemTotal,setRedeemTotal]=useState(500);
