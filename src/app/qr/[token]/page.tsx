@@ -43,8 +43,17 @@ export default function QRPage() {
     setVerifying(false);
   }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
-  useEffect(()=>{ if(billIdFromUrl) verifyBill(); },[]);
+  // Auto-redirect stamp QRs to loyalty flow (user wants stamp wala, not 50% old)
+  useEffect(()=>{
+    if(tokenParam.startsWith("qr_bill") || tokenParam.startsWith("qr_")){
+      const params = new URLSearchParams(window.location.search);
+      const b = params.get("billId") || billIdFromUrl || tokenParam;
+      // Redirect to stamp claim for loyalty 4+5 -> 40%
+      window.location.replace(`/loyalty/claim/${encodeURIComponent(tokenParam)}?billId=${encodeURIComponent(b)}`);
+      return;
+    }
+    if(billIdFromUrl) verifyBill();
+  },[]);
 
   async function submit() {
     if(!form.name.trim() || !form.phone.trim()){ setResult({ ok:false, msg:"Name and 10-digit mobile required" }); return; }
