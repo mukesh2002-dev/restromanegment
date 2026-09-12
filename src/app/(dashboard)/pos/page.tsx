@@ -444,7 +444,7 @@ export default function POSPage() {
           <div className="flex items-center gap-2">
             <Badge className="border bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium">{orderType} • {cart.length} lines • ₹{grandTotal.toLocaleString("en-IN")}</Badge>
             {holdOrders.length>0 && <Badge className="bg-amber-100 text-amber-800 border-amber-200 px-2.5 py-1 text-xs">{holdOrders.length} held</Badge>}
-            {bill && <Badge className="bg-green-600 text-white border-green-600">âœ“ Paid</Badge>}
+            {bill && <Badge className="bg-green-600 text-white border-green-600">✓ Paid</Badge>}
           </div>
         </div>
         {/* 5-step billing flow */}
@@ -457,7 +457,7 @@ export default function POSPage() {
             {n:5,label:"Receipt",active:billingStep>=5},
           ].map(s=>(
             <div key={s.n} className="flex items-center gap-1.5 shrink-0">
-              <span className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border ${s.active?"bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900":"bg-white text-zinc-500 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-700"}`}>{s.active && billingStep>s.n?"âœ“":s.n}</span>
+              <span className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border ${s.active?"bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900":"bg-white text-zinc-500 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-700"}`}>{s.active && billingStep>s.n?"✓":s.n}</span>
               <span className={`text-xs font-medium whitespace-nowrap ${s.active?"text-zinc-900 dark:text-zinc-100":"text-zinc-500"}`}>{s.label}</span>
               {s.n<5 && <span className="w-6 sm:w-8 h-px bg-zinc-200 dark:bg-zinc-800 mx-1" />}
             </div>
@@ -585,7 +585,7 @@ export default function POSPage() {
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Input placeholder="10-digit mobile (6-9 start)" value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} className="h-9 pl-9" />
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">🍽“±</span>
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">📱</span>
                       </div>
                       <Button size="sm" onClick={searchCustomer} disabled={customerSearching} className="h-9 px-4 font-semibold">{customerSearching?"Searching…":"Search"}</Button>
                     </div>
@@ -594,7 +594,7 @@ export default function POSPage() {
                       <Button size="sm" variant="ghost" onClick={continueAsWalkIn} className="h-8 text-xs flex-1">Walk-in</Button>
                     </div>
                     <div className="flex gap-2 text-xs">
-                      <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">🍽“· Scanner: <button onClick={()=> setCustomerPhone("9876543210")} className="underline text-blue-600 dark:text-blue-400">Demo scan</button></span>
+                      <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">📷 Scanner: <button onClick={()=> setCustomerPhone("9876543210")} className="underline text-blue-600 dark:text-blue-400">Demo scan</button></span>
                     </div>
                   </div>
                 )}
@@ -613,7 +613,7 @@ export default function POSPage() {
                         {customerProfile.availableCoupons!.slice(0,3).map(c=> <div key={c.code} className="font-mono border rounded-lg px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 mt-1.5 text-amber-900 dark:text-amber-100">{c.code} • {c.value}{c.rewardType==="PERCENTAGE"?"%":"₹"} off • exp {new Date(c.expiryDate).toLocaleDateString()}</div>)}
                       </div>
                     )}
-                    <div className="text-xs font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-2.5 py-1.5">âœ“ Linked — Loyalty & coupons will apply</div>
+                    <div className="text-xs font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-2.5 py-1.5">✓ Linked — Loyalty & coupons will apply</div>
                   </div>
                 )}
                 {customerMode==="new" && (
@@ -686,7 +686,7 @@ export default function POSPage() {
                     {payments.length>1 && <Button variant="ghost" size="sm" onClick={()=> removePayment(idx)} className="h-8 w-8 p-0 text-zinc-500 hover:text-red-600">âœ•</Button>}
                   </div>
                 ))}
-                <div className="flex justify-between text-xs font-medium"><span className="text-zinc-600 dark:text-zinc-400">Paid ₹{paidSum.toLocaleString("en-IN")}</span><span className={remaining===0?"text-green-600 dark:text-green-400 font-bold":"text-amber-600 dark:text-amber-400"}>{remaining===0?"âœ“ Fully paid":`Remaining ₹${remaining.toLocaleString("en-IN")}`}</span></div>
+                <div className="flex justify-between text-xs font-medium"><span className="text-zinc-600 dark:text-zinc-400">Paid ₹{paidSum.toLocaleString("en-IN")}</span><span className={remaining===0?"text-green-600 dark:text-green-400 font-bold":"text-amber-600 dark:text-amber-400"}>{remaining===0?"✓ Fully paid":`Remaining ₹${remaining.toLocaleString("en-IN")}`}</span></div>
               </div>
 
               {/* Actions */}
@@ -705,29 +705,29 @@ export default function POSPage() {
               {order && bill && (
                 <div id="bill-success" className="rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 border-2 border-green-400 dark:border-green-700 p-4 space-y-3 shadow-sm">
                   <div className="flex items-start gap-2">
-                    <span className="h-8 w-8 rounded-full bg-green-600 text-white flex items-center justify-center shrink-0 mt-0.5">âœ“</span>
+                    <span className="h-8 w-8 rounded-full bg-green-600 text-white flex items-center justify-center shrink-0 mt-0.5">✓</span>
                     <div>
                       <div className="font-bold text-green-800 dark:text-green-200 text-[15px] leading-tight">Payment Successful — Bill {bill.billNumber}</div>
-                      <div className="text-xs text-green-700 dark:text-green-300 mt-1">Order {order.orderNumber} â†’ Customer: {customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • Total ₹{bill.totalAmount.toLocaleString("en-IN")}</div>
+                      <div className="text-xs text-green-700 dark:text-green-300 mt-1">Order {order.orderNumber} → Customer: {customerMode==="found"? customerProfile?.name : customerMode==="walkin"?"Walk-in":"—"} • Total ₹{bill.totalAmount.toLocaleString("en-IN")}</div>
                     </div>
                     <Badge className="ml-auto bg-green-600 text-white border-0 shrink-0">{bill.paymentStatus}</Badge>
                   </div>
                   <div className="flex gap-3 items-center bg-white dark:bg-zinc-900 rounded-xl p-3 border dark:border-zinc-700 shadow-sm">
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(typeof window!=="undefined"? `${window.location.origin}/qr/${bill.qrToken}?billId=${bill.id}` : `/qr/${bill.qrToken}`)}`} alt="Loyalty QR" className="h-24 w-24 border rounded-xl bg-white p-1" />
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(typeof window!=="undefined"? `${window.location.origin}/loyalty/claim/${(bill as any).loyaltyQrToken || bill.qrToken}` : `/loyalty/claim/${(bill as any).loyaltyQrToken || bill.qrToken}`)}`} alt="Stamp QR" className="h-24 w-24 border rounded-xl bg-white p-1" />
                       <div className="text-xs space-y-1">
-                      <div className="font-bold text-zinc-900 dark:text-zinc-100">Loyalty QR — Scan for reward</div>
-                      <div className="break-all font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{bill.qrToken}</div>
-                      <Link href={`/qr/${bill.qrToken}?billId=${bill.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Open QR Reward Flow â†’</Link>
+                      <div className="font-bold text-zinc-900 dark:text-zinc-100">Stamp QR — Scan for 1 Stamp (Min ₹300)</div>
+                      <div className="break-all font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{(bill as any).loyaltyQrToken || bill.qrToken}</div>
+                      <Link href={`/loyalty/claim/${(bill as any).loyaltyQrToken || bill.qrToken}`} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Open Stamp Claim →</Link>
                       <div className="text-zinc-600 dark:text-zinc-400 font-medium text-xs">
                         {(bill as unknown as {loyaltyEarned?:number}).loyaltyEarned
-                          ? `+${(bill as unknown as {loyaltyEarned?:number}).loyaltyEarned} pts earned (bal ${(bill as unknown as {loyaltyBalanceAfter?:number}).loyaltyBalanceAfter}) âœ“`
+                          ? `+${(bill as unknown as {loyaltyEarned?:number}).loyaltyEarned} pts earned (bal ${(bill as unknown as {loyaltyBalanceAfter?:number}).loyaltyBalanceAfter}) ✓`
                           : bill.totalAmount>=100? `Earn ~${Math.floor(bill.totalAmount/100)*10} pts (₹100=10) — next bill` : "Spend ₹100+ to earn loyalty"}
                       </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Button size="sm" className="h-9 font-semibold rounded-xl" onClick={()=> document.getElementById("receipt")?.scrollIntoView({behavior:"smooth"})}>View & Print Bill</Button>
-                    <Link href="/customers"><Button size="sm" variant="outline" className="w-full h-9 font-semibold rounded-xl dark:border-zinc-700">View in CRM â†’</Button></Link>
+                    <Link href="/customers"><Button size="sm" variant="outline" className="w-full h-9 font-semibold rounded-xl dark:border-zinc-700">View in CRM →</Button></Link>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" className="flex-1 h-9 font-semibold rounded-xl" onClick={()=>{ setCart([]); setOrder(null); setBill(null); setMsg("New bill started — add products"); window.scrollTo({top:0,behavior:"smooth"}); }}>+ New Bill</Button>
@@ -741,7 +741,7 @@ export default function POSPage() {
           {bill && (
             <Card id="receipt" className="shadow-lg border-zinc-300 dark:border-zinc-700 print:shadow-none overflow-hidden">
               <CardHeader className="bg-zinc-900 text-white dark:bg-zinc-800 border-b-0">
-                <CardTitle className="text-[15px] flex items-center gap-2 text-white">🍽§¾ Print-ready Receipt <span className="text-xs bg-white text-zinc-900 px-2.5 py-1 rounded-full font-bold ml-auto">Bill #{bill.billNumber}</span></CardTitle>
+                <CardTitle className="text-[15px] flex items-center gap-2 text-white">🧾 Print-ready Receipt <span className="text-xs bg-white text-zinc-900 px-2.5 py-1 rounded-full font-bold ml-auto">Bill #{bill.billNumber}</span></CardTitle>
                 <CardDescription className="text-zinc-300 dark:text-zinc-400">Order #{order?.orderNumber || bill.orderId.slice(0,8)} • {new Date(bill.paidAt || Date.now()).toLocaleString()} • Table {tables.find(t=>t.id===tableId)?.number || "—"}</CardDescription>
               </CardHeader>
               <CardContent className="p-5 space-y-4 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
@@ -767,20 +767,20 @@ export default function POSPage() {
                 </div>
                 <div className="border-2 border-dashed rounded-xl p-3 bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-600 flex gap-3 items-center">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${typeof window!=="undefined"? window.location.origin : "https://restroerp.vercel.app"}/qr/${bill.qrToken}?billId=${bill.id}`)}`}
-                    alt="Review QR"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${typeof window!=="undefined"? window.location.origin : "https://restroerp.vercel.app"}/loyalty/claim/${(bill as any).loyaltyQrToken || bill.qrToken}`)}`}
+                    alt="Stamp QR"
                     className="h-28 w-28 border rounded-xl bg-white p-1.5 shadow-sm"
                   />
                   <div className="text-xs space-y-1">
-                    <div className="font-black text-zinc-900 dark:text-zinc-100">â­ Rate & Get Reward</div>
-                    <div className="text-zinc-600 dark:text-zinc-400">Scan to review — 4â˜…=40% off, 5â˜…=50% off</div>
+                    <div className="font-black text-zinc-900 dark:text-zinc-100">🎟️ Scan for Stamp — 1 Visit = 1 Stamp</div>
+                    <div className="text-zinc-600 dark:text-zinc-400">Collect 4 stamps → 5th visit 40% OFF (1 Month)</div>
                     <div className="font-mono text-[10px] break-all text-zinc-500 dark:text-zinc-400">{bill.qrToken}</div>
                     <div className="text-zinc-400 text-[11px]">One reward per bill • 30 days valid</div>
                   </div>
                 </div>
                 <div className="flex gap-2 print:hidden">
                   <Button variant="outline" className="flex-1 h-10 font-bold rounded-xl dark:border-zinc-700" onClick={()=> window.print()}>🍽–¨ï¸ Print Receipt</Button>
-                  <Button className="flex-1 h-10 font-bold rounded-xl bg-zinc-900 dark:bg-white dark:text-zinc-900" onClick={()=> window.open(`/qr/${bill.qrToken}?billId=${bill.id}`, "_blank")}>Open Review QR</Button>
+                  <Button className="flex-1 h-10 font-bold rounded-xl bg-zinc-900 dark:bg-white dark:text-zinc-900" onClick={()=> window.open(`/loyalty/claim/${(bill as any).loyaltyQrToken || bill.qrToken}`, "_blank")}>Open Stamp QR</Button>
                 </div>
                 <div className="flex gap-2 print:hidden">
                   <Button variant="outline" className="flex-1 h-9 font-semibold rounded-xl dark:border-zinc-700" onClick={async()=>{
